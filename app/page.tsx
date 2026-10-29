@@ -7,9 +7,11 @@ import {
   ArrowRight, ArrowUpRight, Braces, Boxes, Database, Github, Linkedin,
   Mail, Menu, Network, RadioTower, ServerCog, Workflow, X, Zap, Layers3,
   ExternalLink, GraduationCap, MapPin, Phone, Globe, Cpu, CheckCircle2,
+  Newspaper, Calendar, Clock, Tag, Filter, Sparkles, FolderGit2,
 } from "lucide-react";
-import { Project } from "@/types/project";
-import { getProjects } from "@/lib/projects";
+import { Project, Product, NewsArticle, PortfolioData } from "@/types/portfolio";
+import { fallbackPortfolioData } from "@/data/fallback-data";
+import { getPortfolioData } from "@/lib/portfolio";
 
 const reveal = {
   hidden: { opacity: 0, y: 20 },
@@ -18,13 +20,16 @@ const reveal = {
 
 const navItems = [
   ["Projects", "#projects"],
+  ["Products", "#products"],
+  ["News", "#news"],
   ["Toolkit", "#expertise"],
-  ["Impact", "#impact"],
   ["Experience", "#experience"],
   ["Education", "#education"],
   ["About", "#about"],
   ["Contact", "#contact"],
 ];
+
+const categories = ["All", "Backend", "Architecture", "Full Stack"];
 
 const stacks = [
   {
@@ -95,7 +100,6 @@ const jobs = [
     role: "Backend Developer",
     detail: "Developed backend services for AI-driven healthcare platforms using Golang and Node.js. Designed gRPC-based inter-service communication and RabbitMQ event-driven workflows. Optimized performance with Redis caching and CI/CD pipelines, directly contributing to a patient room transfer system.",
     tags: ["Golang", "Node.js", "gRPC", "RabbitMQ", "Redis", "Docker", "CI/CD", "Healthcare AI"],
-    current: true,
     url: "https://nexmedis.com/",
   },
   {
@@ -174,15 +178,24 @@ const educations = [
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(fallbackPortfolioData);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getProjects().then((data) => {
-      setProjects(data);
-      setLoadingProjects(false);
+    getPortfolioData().then((data) => {
+      setPortfolioData(data);
+      setLoading(false);
     });
   }, []);
+
+  const projects = portfolioData.projects || [];
+  const products = portfolioData.products || [];
+  const news = portfolioData.news || [];
+
+  const filteredProjects = selectedCategory === "All"
+    ? projects
+    : projects.filter((p) => p.category === selectedCategory || p.tags?.some((t) => t.toLowerCase().includes(selectedCategory.toLowerCase())));
 
   return (
     <main className="overflow-hidden bg-[#f4f7fb] text-[#10172a]">
@@ -199,7 +212,7 @@ export default function Home() {
             <span className="text-2xl font-black tracking-[-.12em]">↗</span>
             <span className="font-serif text-xl tracking-tight">Refamaan<span className="text-cyan-200">.</span></span>
           </a>
-          <nav className="hidden items-center gap-7 rounded-full bg-white/90 px-7 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm md:flex">
+          <nav className="hidden items-center gap-5 rounded-full bg-white/90 px-6 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm md:flex">
             {navItems.map(([label, href]) => <a key={label} href={href} className="transition hover:text-blue-600">{label}</a>)}
           </nav>
           <button onClick={() => setMenuOpen(!menuOpen)} className="grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/90 text-slate-900 shadow-sm md:hidden" aria-label="Toggle navigation" aria-expanded={menuOpen}>
@@ -230,9 +243,9 @@ export default function Home() {
             </div>
             <div className="mt-10 hidden items-center gap-3 text-[10px] text-blue-50 md:flex">
               <div className="flex -space-x-2">
-                <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-blue-600 bg-white font-bold text-blue-800">R</span>
-                <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-blue-600 bg-cyan-100 font-bold text-blue-800">6+</span>
-                <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-blue-600 bg-sky-200 font-bold text-blue-800">↗</span>
+                <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-blue-600 bg-white font-bold text-blue-900">R</span>
+                <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-blue-600 bg-cyan-100 font-bold text-blue-900">6+</span>
+                <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-blue-600 bg-sky-200 font-bold text-blue-900">↗</span>
               </div>
               <span>6+ years engineering enterprise solutions (SIMRS, School, E-Commerce, ERP)</span>
             </div>
@@ -269,19 +282,37 @@ export default function Home() {
         <span>Distributed systems</span><span>RabbitMQ & Redis</span><span>Golang & PHP</span><span>Next.js & React</span><span>Enterprise Cloud</span>
       </div>
 
-      {/* SECTION 01: PROJECTS */}
+      {/* SECTION 01: PROJECTS SHOWCASE */}
       <section id="projects" className="container-shell py-20 md:py-28">
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="eyebrow text-blue-700">01 / Selected Works</p>
             <h2 className="section-title mt-4">Featured<br /><span className="text-slate-400">Projects.</span></h2>
           </div>
-          <p className="max-w-sm text-sm leading-6 text-slate-600">
-            A showcase of production enterprise systems, asynchronous architectures, and full stack solutions.
-          </p>
+          <div className="flex flex-col items-start md:items-end gap-4">
+            <p className="max-w-md text-sm leading-6 text-slate-600">
+              A showcase of production systems, asynchronous architectures, and full stack solutions.
+            </p>
+            {/* Category Filter Tabs */}
+            <div className="flex flex-wrap gap-2 rounded-xl bg-slate-100 p-1.5 border border-slate-200/80">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                    selectedCategory === cat
+                      ? "bg-white text-blue-700 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
-        {loadingProjects ? (
+        {loading ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((n) => (
               <div key={n} className="h-64 rounded-2xl border border-slate-200 bg-white/60 p-6 animate-pulse" />
@@ -289,7 +320,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((item, i) => (
+            {filteredProjects.map((item, i) => (
               <motion.article
                 key={item.id || item.title}
                 initial="hidden"
@@ -302,9 +333,9 @@ export default function Home() {
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="eyebrow text-slate-400">Project 0{i + 1}</span>
-                    {item.featured && (
-                      <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700">
-                        Featured
+                    {item.metrics && (
+                      <span className="rounded-full bg-cyan-50 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-800 border border-cyan-200/60">
+                        {item.metrics}
                       </span>
                     )}
                   </div>
@@ -360,10 +391,133 @@ export default function Home() {
         )}
       </section>
 
-      {/* SECTION 02: TOOLKIT */}
+      {/* SECTION 02: PRODUCTS & SAAS TOOLS */}
+      <section id="products" className="container-shell py-20 md:py-28 border-t border-slate-200">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <p className="eyebrow text-blue-700">02 / Products & Solutions</p>
+            <h2 className="section-title mt-4">Built to solve<br /><span className="text-slate-400">real problems.</span></h2>
+          </div>
+          <p className="max-w-sm text-sm leading-6 text-slate-600">
+            Open-source developer kits, architectural starter scaffolds, and modular SaaS tools.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {products.map((prod, i) => (
+            <motion.article
+              key={prod.id || prod.name}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.1 }}
+              variants={reveal}
+              transition={{ delay: i * 0.05 }}
+              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">
+                    {prod.pricing_type}
+                  </span>
+                  {prod.badge && (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-600">
+                      {prod.badge}
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="mt-5 text-xl font-bold tracking-tight text-slate-900">
+                  {prod.name}
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-blue-600">{prod.headline}</p>
+                <p className="mt-3 text-xs leading-6 text-slate-600">{prod.description}</p>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 text-slate-500 text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Status: {prod.status}
+                </span>
+                {prod.github_url && (
+                  <a
+                    href={prod.github_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 transition"
+                  >
+                    <Github size={14} /> Open Source ↗
+                  </a>
+                )}
+                {prod.product_url && (
+                  <a
+                    href={prod.product_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 transition"
+                  >
+                    Visit Product <ArrowUpRight size={14} />
+                  </a>
+                )}
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 03: NEWS & DEVLOG */}
+      <section id="news" className="container-shell py-20 md:py-28 border-t border-slate-200">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <p className="eyebrow text-blue-700">03 / News & Devlog</p>
+            <h2 className="section-title mt-4">Engineering<br /><span className="text-slate-400">Updates.</span></h2>
+          </div>
+          <p className="max-w-sm text-sm leading-6 text-slate-600">
+            Case studies, technical deep-dives, architectural postmortems, and latest milestones.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {news.map((item, i) => (
+            <motion.article
+              key={item.id || item.slug}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.1 }}
+              variants={reveal}
+              transition={{ delay: i * 0.05 }}
+              className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-semibold text-blue-700">{item.category}</span>
+                  <span className="flex items-center gap-1"><Clock size={12} /> {item.read_time}</span>
+                </div>
+
+                <h3 className="mt-4 text-lg font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-xs leading-6 text-slate-600 line-clamp-3">
+                  {item.excerpt}
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  {item.published_at}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 group-hover:translate-x-1 transition">
+                  Read article <ArrowRight size={13} />
+                </span>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 04: TOOLKIT */}
       <section id="expertise" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div><p className="eyebrow text-blue-700">02 / The toolkit</p><h2 className="section-title mt-4">Good tools.<br /><span className="text-slate-400">Better systems.</span></h2></div>
+          <div><p className="eyebrow text-blue-700">04 / The toolkit</p><h2 className="section-title mt-4">Good tools.<br /><span className="text-slate-400">Better systems.</span></h2></div>
           <p className="max-w-sm text-sm leading-6 text-slate-600">Core technologies used to design resilient backend services, scalable data pipelines, and responsive web systems.</p>
         </motion.div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
@@ -378,10 +532,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 03: MEASURABLE OUTCOMES */}
+      {/* SECTION 05: MEASURABLE OUTCOMES */}
       <section id="impact" className="bg-gradient-to-br from-[#0b1535] via-[#10245e] to-[#0e7490] py-20 text-white md:py-28">
         <div className="container-shell">
-          <div className="mb-10"><p className="eyebrow text-cyan-200">03 / Measurable outcomes</p><h2 className="section-title mt-4">Build with intent.<br /><span className="text-white/45">Measure the difference.</span></h2></div>
+          <div className="mb-10"><p className="eyebrow text-cyan-200">05 / Measurable outcomes</p><h2 className="section-title mt-4">Build with intent.<br /><span className="text-white/45">Measure the difference.</span></h2></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {impact.map((item, i) => <motion.article key={item.title} initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} transition={{ delay: i * .05 }} className="rounded-2xl border border-white/15 bg-white/[.06] p-7 backdrop-blur-sm">
               <div className="flex justify-between"><span className="eyebrow text-white/45">Impact 0{i + 1}</span><ArrowUpRight size={16} className="text-cyan-300" /></div>
@@ -392,11 +546,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 04: EXPERIENCE */}
+      {/* SECTION 06: EXPERIENCE (2-ROW HEADER & 2-COLUMN GRID) */}
       <section id="experience" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-14">
           <div>
-            <p className="eyebrow text-blue-700">04 / Experience</p>
+            <p className="eyebrow text-blue-700">06 / Experience</p>
             <h2 className="section-title mt-4">
               A track record <br />
               of <span className="text-slate-400">building.</span>
@@ -455,11 +609,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 05: EDUCATION */}
+      {/* SECTION 07: EDUCATION */}
       <section id="education" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="eyebrow text-blue-700">05 / Education</p>
+            <p className="eyebrow text-blue-700">07 / Education</p>
             <h2 className="section-title mt-4">Academic<br /><span className="text-slate-400">Foundation.</span></h2>
           </div>
           <p className="max-w-sm text-sm leading-6 text-slate-600">
@@ -494,11 +648,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 06: ABOUT & PHILOSOPHY */}
+      {/* SECTION 08: ABOUT & PHILOSOPHY */}
       <section id="about" className="container-shell pb-20 md:pb-28">
         <div className="grid gap-4 md:grid-cols-5">
           <article className="rounded-2xl bg-[#1d4ed8] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-600 p-7 text-white shadow-sm md:col-span-3 md:p-10">
-            <p className="eyebrow text-cyan-100">06 / Engineering philosophy</p>
+            <p className="eyebrow text-cyan-100">08 / Engineering philosophy</p>
             <h2 className="mt-8 max-w-lg text-4xl font-black leading-[.98] tracking-[-.07em] md:text-5xl">
               Good engineering is invisible when it works.
             </h2>
@@ -544,7 +698,7 @@ export default function Home() {
       <footer id="contact" className="bg-[#0b1020] text-white">
         <div className="container-shell grid gap-10 py-16 md:grid-cols-[1.2fr_.8fr] md:py-24">
           <div>
-            <p className="eyebrow text-cyan-300">07 / Have a good problem?</p>
+            <p className="eyebrow text-cyan-300">09 / Have a good problem?</p>
             <h2 className="mt-6 text-5xl font-black leading-[.9] tracking-[-.08em] md:text-7xl">
               Let&apos;s build<br />
               <span className="bg-gradient-to-r from-blue-300 via-sky-200 to-cyan-300 bg-clip-text text-transparent">
