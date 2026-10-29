@@ -245,8 +245,8 @@ export default function Home() {
               <p className="eyebrow text-blue-700">Specialization <span className="text-cyan-500">●</span></p>
               <h2 className="mt-2 text-xl font-semibold leading-tight tracking-[-.06em] sm:text-2xl">Backend &<br />Architecture</h2>
             </div>
-            <div className="absolute bottom-0 left-[-4%] z-10 h-full w-[78%] sm:left-[1%] sm:w-[68%] md:hidden">
-              <Image src="/refa-human.webp" alt="Muhammad Refa Walada Mushtofa" fill priority sizes="(max-width: 768px) 78vw, 0px" className="object-contain object-bottom" />
+            <div className="absolute bottom-0 left-[-2%] z-10 h-full w-[84%] sm:left-[4%] sm:w-[72%] md:hidden">
+              <Image src="/refa-foto.png" alt="Muhammad Refa Walada Mushtofa" fill priority sizes="(max-width: 768px) 84vw, 0px" className="object-contain object-bottom" />
             </div>
             <div className="absolute bottom-4 right-4 z-30 max-w-[200px] rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-soft sm:bottom-5 sm:right-6 sm:max-w-[230px] md:bottom-7 md:right-8">
               <span className="text-2xl font-black leading-none text-blue-600">“</span>
@@ -255,8 +255,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="pointer-events-none absolute bottom-0 left-[29%] z-10 hidden h-[94%] w-[49%] md:block">
-            <Image src="/refa-human.webp" alt="Muhammad Refa Walada Mushtofa" fill priority sizes="(min-width: 768px) 49vw, 0px" className="object-contain object-bottom drop-shadow-2xl" />
+          <div className="pointer-events-none absolute bottom-0 left-[28%] z-10 hidden h-[92%] w-[48%] md:block">
+            <Image src="/refa-foto.png" alt="Muhammad Refa Walada Mushtofa" fill priority sizes="(min-width: 768px) 48vw, 0px" className="object-contain object-bottom drop-shadow-2xl" />
           </div>
         </div>
 
