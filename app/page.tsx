@@ -416,33 +416,39 @@ export default function Home() {
           </div>
         </motion.div>
 
-        <div className="relative border-l-2 border-slate-300 pl-6 sm:pl-8 max-w-4xl">
-          {jobs.map((job) => (
-            <motion.article key={`${job.company}-${job.role}-${job.date}`} initial="hidden" whileInView="show" viewport={{ once: true, amount: .1 }} variants={reveal} className="relative mb-8 last:mb-0">
-              <span className={`absolute -left-[31px] top-6 h-3.5 w-3.5 rounded-full border-2 ${job.current ? "border-blue-600 bg-blue-600 shadow-sm shadow-blue-500/50" : "border-slate-400 bg-[#f4f7fb]"}`} />
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm transition hover:border-blue-300 hover:shadow-md">
-                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
-                  <div>
-                    <p className="eyebrow text-blue-700">{job.date}</p>
-                    <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900">{job.role}</h3>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                      {job.company} · {job.brand}
-                    </p>
-                  </div>
-                  {job.current && (
-                    <span className="w-fit rounded-full bg-cyan-50 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-cyan-800 border border-cyan-200/60">
-                      Current
-                    </span>
-                  )}
-                </div>
-                <p className="mt-4 text-xs leading-6 text-slate-600">{job.detail}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {job.tags.map(tag => (
-                    <span key={tag} className="rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-600">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {jobs.map((job, i) => (
+            <motion.article
+              key={`${job.company}-${job.role}-${job.date}`}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.1 }}
+              variants={reveal}
+              transition={{ delay: i * 0.04 }}
+              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+            >
+              <div>
+                <p className="eyebrow text-blue-700 font-semibold">{job.date}</p>
+                <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900">
+                  {job.role}
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  {job.company} · {job.brand}
+                </p>
+                <p className="mt-3.5 text-xs leading-6 text-slate-600">
+                  {job.detail}
+                </p>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-1.5">
+                {job.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
             </motion.article>
           ))}
