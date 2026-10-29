@@ -228,9 +228,16 @@ export default function Home() {
 
         <div className="relative z-10 mx-auto grid min-h-0 max-w-[1440px] grid-cols-1 md:min-h-[650px] md:grid-cols-[54%_46%]">
           <div className="relative z-20 flex flex-col items-start px-6 pb-12 pt-12 text-white sm:px-9 md:min-h-[650px] md:justify-center md:px-10 md:pb-16 md:pt-0 lg:px-16">
-            <p className="eyebrow mb-5 text-cyan-100">Full Stack Engineer · Backend & System Design</p>
-            <h1 className="max-w-full text-[clamp(4.3rem,10.2vw,9.4rem)] font-black uppercase leading-[.79] tracking-[-.095em]">Refa<span className="text-cyan-200">.</span></h1>
-            <p className="mt-7 max-w-[340px] text-sm leading-6 text-blue-50">
+            <p className="eyebrow mb-3 text-cyan-100 font-semibold tracking-wider">
+              Muhammad Refa Walada Mushtofa (M. Refa)
+            </p>
+            <h1 className="max-w-full text-[clamp(4.3rem,10.2vw,9.4rem)] font-black uppercase leading-[.79] tracking-[-.095em]">
+              Refa<span className="text-cyan-200">.</span>
+            </h1>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-cyan-200 sm:text-sm">
+              Backend Programmer &amp; Full Stack Engineer
+            </p>
+            <p className="mt-6 max-w-[360px] text-sm leading-6 text-blue-50">
               Specializing in backend development, distributed systems, and event-driven architecture for complex enterprise applications.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -652,12 +659,12 @@ export default function Home() {
       <section id="about" className="container-shell pb-20 md:pb-28">
         <div className="grid gap-4 md:grid-cols-5">
           <article className="rounded-2xl bg-[#1d4ed8] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-600 p-7 text-white shadow-sm md:col-span-3 md:p-10">
-            <p className="eyebrow text-cyan-100">08 / Engineering philosophy</p>
+            <p className="eyebrow text-cyan-100">08 / Engineering philosophy · Muhammad Refa Walada Mushtofa</p>
             <h2 className="mt-8 max-w-lg text-4xl font-black leading-[.98] tracking-[-.07em] md:text-5xl">
               Good engineering is invisible when it works.
             </h2>
             <p className="mt-6 max-w-xl text-sm leading-6 text-blue-50">
-              I specialize in designing robust, scalable server-side logic for complex enterprise applications, including SIMRS, School Management, E-Commerce, and ERP systems. Primarily focused on distributed systems, event-driven architecture using RabbitMQ, and advanced API design — paired with modern frontend interfaces in Next.js, React, and Vue.js.
+              Saya Muhammad Refa Walada Mushtofa (dikenal sebagai Refa / M. Refa), seorang Backend Programmer &amp; Full Stack Engineer. Berfokus pada perancangan logika server-side yang skalabel, distributed systems, event-driven messaging (RabbitMQ), serta API performa tinggi (Golang, Laravel, Symfony, Node.js, Next.js) untuk enterprise applications seperti SIMRS, sistem pembayaran sekolah, e-commerce, dan ERP.
             </p>
             <div className="mt-8 border-t border-white/25 pt-5 text-[10px] font-bold uppercase tracking-wider">
               Clarity · Reliability · Pragmatic Trade-offs · Long-term Maintainability
@@ -757,12 +764,12 @@ export default function Home() {
                   <Linkedin size={14} /> LinkedIn ↗
                 </a>
                 <a
-                  href="https://mrefawaladam.vercel.app"
+                  href="https://mrefawm.my.id"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2.5 text-xs text-white/80 hover:border-cyan-300 transition"
                 >
-                  <Globe size={14} /> Live Web ↗
+                  <Globe size={14} /> mrefawm.my.id ↗
                 </a>
               </div>
             </div>
