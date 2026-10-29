@@ -221,7 +221,7 @@ export default function Home() {
               Specializing in backend development, distributed systems, and event-driven architecture for complex enterprise applications.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <a href="#projects" className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3.5 text-[10px] font-bold uppercase tracking-wide text-blue-900 shadow-lg shadow-blue-950/10 transition hover:-translate-y-0.5 hover:bg-cyan-100">
+              <a href="#projects" className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3.5 text-[10px] font-bold uppercase tracking-wide text-slate-900 shadow-lg shadow-blue-950/10 transition hover:-translate-y-0.5 hover:bg-cyan-100">
                 View selected work <ArrowUpRight size={15} />
               </a>
               <a href="#contact" className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm transition hover:bg-white/20">
@@ -393,50 +393,59 @@ export default function Home() {
       </section>
 
       {/* SECTION 04: EXPERIENCE */}
-      <section id="experience" className="container-shell py-20 md:py-28">
-        <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr]">
-          <div className="lg:sticky lg:top-28 lg:h-fit">
+      <section id="experience" className="container-shell py-20 md:py-28 border-t border-slate-200">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-14">
+          <div>
             <p className="eyebrow text-blue-700">04 / Experience</p>
-            <h2 className="section-title mt-4">A track record<br />of <span className="text-slate-400">building.</span></h2>
-            <p className="mt-5 max-w-sm text-sm leading-6 text-slate-600">
+            <h2 className="section-title mt-4">
+              A track record <br />
+              of <span className="text-slate-400">building.</span>
+            </h2>
+          </div>
+
+          <div className="mt-8 flex flex-col justify-between gap-5 border-t border-slate-200/80 pt-6 md:flex-row md:items-end">
+            <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
               6+ years delivering backend architectures, distributed event pipelines, and robust product engineering across healthcare, education, fintech, and SME platforms.
             </p>
-            <a href="mailto:refa.main@gmail.com" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-900 transition">
+            <a
+              href="mailto:refa.main@gmail.com"
+              className="inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-900 transition shrink-0"
+            >
               Discuss a project <ArrowRight size={15} />
             </a>
           </div>
+        </motion.div>
 
-          <div className="relative border-l border-slate-300 pl-5 sm:pl-6">
-            {jobs.map((job) => (
-              <motion.article key={`${job.company}-${job.role}-${job.date}`} initial="hidden" whileInView="show" viewport={{ once: true, amount: .1 }} variants={reveal} className="relative mb-6 last:mb-0">
-                <span className={`absolute -left-[27px] top-6 h-3 w-3 rounded-full border-2 ${job.current ? "border-blue-600 bg-blue-600" : "border-slate-400 bg-[#f4f7fb]"}`} />
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm transition hover:border-blue-300">
-                  <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
-                    <div>
-                      <p className="eyebrow text-blue-700">{job.date}</p>
-                      <h3 className="mt-2 text-lg font-bold tracking-tight text-slate-900">{job.role}</h3>
-                      <p className="mt-1 text-xs font-medium text-slate-500">
-                        {job.company} · {job.brand}
-                      </p>
-                    </div>
-                    {job.current && (
-                      <span className="w-fit rounded-full bg-cyan-50 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-cyan-800">
-                        Current
-                      </span>
-                    )}
+        <div className="relative border-l-2 border-slate-300 pl-6 sm:pl-8 max-w-4xl">
+          {jobs.map((job) => (
+            <motion.article key={`${job.company}-${job.role}-${job.date}`} initial="hidden" whileInView="show" viewport={{ once: true, amount: .1 }} variants={reveal} className="relative mb-8 last:mb-0">
+              <span className={`absolute -left-[31px] top-6 h-3.5 w-3.5 rounded-full border-2 ${job.current ? "border-blue-600 bg-blue-600 shadow-sm shadow-blue-500/50" : "border-slate-400 bg-[#f4f7fb]"}`} />
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm transition hover:border-blue-300 hover:shadow-md">
+                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+                  <div>
+                    <p className="eyebrow text-blue-700">{job.date}</p>
+                    <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900">{job.role}</h3>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      {job.company} · {job.brand}
+                    </p>
                   </div>
-                  <p className="mt-4 text-xs leading-6 text-slate-600">{job.detail}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {job.tags.map(tag => (
-                      <span key={tag} className="rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-600">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  {job.current && (
+                    <span className="w-fit rounded-full bg-cyan-50 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-cyan-800 border border-cyan-200/60">
+                      Current
+                    </span>
+                  )}
                 </div>
-              </motion.article>
-            ))}
-          </div>
+                <p className="mt-4 text-xs leading-6 text-slate-600">{job.detail}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {job.tags.map(tag => (
+                    <span key={tag} className="rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-600">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.article>
+          ))}
         </div>
       </section>
 
@@ -482,7 +491,7 @@ export default function Home() {
       {/* SECTION 06: ABOUT & PHILOSOPHY */}
       <section id="about" className="container-shell pb-20 md:pb-28">
         <div className="grid gap-4 md:grid-cols-5">
-          <article className="rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-600 p-7 text-white md:col-span-3 md:p-10">
+          <article className="rounded-2xl bg-[#1d4ed8] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-600 p-7 text-white shadow-sm md:col-span-3 md:p-10">
             <p className="eyebrow text-cyan-100">06 / Engineering philosophy</p>
             <h2 className="mt-8 max-w-lg text-4xl font-black leading-[.98] tracking-[-.07em] md:text-5xl">
               Good engineering is invisible when it works.
@@ -532,14 +541,14 @@ export default function Home() {
             <p className="eyebrow text-cyan-300">07 / Have a good problem?</p>
             <h2 className="mt-6 text-5xl font-black leading-[.9] tracking-[-.08em] md:text-7xl">
               Let&apos;s build<br />
-              <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-300 via-sky-200 to-cyan-300 bg-clip-text text-transparent">
                 something solid.
               </span>
             </h2>
             <div className="mt-8 flex flex-wrap gap-4">
               <a
                 href="mailto:refa.main@gmail.com"
-                className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3.5 text-xs font-bold text-blue-950 transition hover:bg-cyan-100"
+                className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3.5 text-xs font-bold text-slate-900 shadow-md transition hover:bg-cyan-100"
               >
                 refa.main@gmail.com <ArrowUpRight size={15} />
               </a>
