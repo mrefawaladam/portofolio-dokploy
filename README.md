@@ -58,38 +58,71 @@ npm run dev
 ```
 Buka browser:
 - **Portofolio Publik**: [http://localhost:3000](http://localhost:3000)
+- **Prompt Showcase Page**: [http://localhost:3000/prompts](http://localhost:3000/prompts)
+- **News & Devlog Page**: [http://localhost:3000/news](http://localhost:3000/news)
 - **Admin Dashboard**: [http://localhost:3000/admin](http://localhost:3000/admin) (Gunakan Passcode: `refa-admin-2026`)
 
 ---
 
 ## Panduan Deployment ke Production (Dokploy)
 
-1. **Buat Database PostgreSQL di Dokploy**:
-   - Di Dokploy Dashboard, pilih **Create Service** -> **Database** -> **PostgreSQL**.
-   - Catat Connection String yang diberikan oleh Dokploy (Internal atau External URL).
-2. **Deploy Aplikasi Next.js di Dokploy**:
-   - Tambahkan Service Application (dari Git repository ini).
-   - Masukkan Environment Variables di Dokploy:
-     ```env
-     DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<dbname>
-     DATABASE_SSL=false
-     ADMIN_SECRET_KEY=ganti-dengan-password-rahasia-anda
-     ```
-3. **Inisialisasi Database di Dokploy**:
-   - Masuk ke terminal container Next.js di Dokploy, lalu jalankan:
-     ```bash
-     npm run db:setup
-     ```
-   - Seluruh 7 tabel dan data portofolio akan terisi secara instan.
+Proyek ini telah dikonfigurasi secara optimal untuk deployment di **Dokploy** menggunakan multi-stage Docker build (`output: "standalone"`).
+
+### 1. Buat Database PostgreSQL di Dokploy
+1. Buka dashboard Dokploy Anda.
+2. Klik **Create Service** -> pilih **Database** -> pilih **PostgreSQL**.
+3. Beri nama service (misal: `refa-postgres`).
+4. Klik **Deploy**.
+5. Setelah running, buka tab **General** dan copy **Internal Connection String** (misal: `postgresql://postgres:<password>@<container-name>:5432/refa_portfolio`).
+
+### 2. Buat & Deploy Aplikasi Next.js di Dokploy
+1. Di Dokploy, klik **Create Service** -> pilih **Application**.
+2. Beri nama service (misal: `refa-portfolio`).
+3. Pada tab **Source / Provider**:
+   - Pilih **GitHub**.
+   - Repository: `mrefawaladam/portofolio-dokploy`.
+   - Branch: `main`.
+4. Pada tab **Build**:
+   - **Build Type**: Pilih **Dockerfile** (otomatis menggunakan `Dockerfile` multi-stage yang sudah ada di repo).
+5. Pada tab **Environment Variables**, tambahkan:
+   ```env
+   DATABASE_URL=postgresql://postgres:<password>@<container-name>:5432/refa_portfolio
+   DATABASE_SSL=false
+   ADMIN_SECRET_KEY=ganti-dengan-kunci-rahasia-admin-anda
+   PORT=3000
+   ```
+6. *(Opsional)* **Persistent Volume untuk Upload Gambar / File**:
+   - Agar file gambar yang diupload via Admin tetap tersimpan saat container di-restart, tambahkan Volume Mount di tab **Volumes**:
+     - **Host Path**: `/var/lib/dokploy/volumes/refa-portfolio-uploads` (atau volume name `refa_uploads`)
+     - **Container Path**: `/app/public/uploads`
+7. Pada tab **Domains**:
+   - Masukkan domain Anda (misal: `mrefawm.my.id`).
+   - Port: `3000`.
+   - Aktifkan **HTTPS / Let's Encrypt SSL**.
+8. Klik **Deploy**.
+
+### 3. Migrasi & Initial Seeding Database di Dokploy
+Setelah aplikasi Next.js berhasil di-deploy:
+1. Buka tab **Terminal / Console** pada service container Next.js di Dokploy.
+2. Jalankan perintah migrasi & seed:
+   ```bash
+   node scripts/setup-db.js
+   ```
+3. Periksa status data:
+   ```bash
+   node scripts/setup-db.js --check
+   ```
+   Seluruh 8 tabel akan otomatis terisi data awal (*Projects, Products, Prompt Showcases, News, Experiences, Educations, Tech Stacks, Impact*).
 
 ---
 
-## Struktur Database (7 Tabel)
+## Struktur Database (8 Tabel)
 
-- `public.projects`: Proyek unggulan, kategori, tag, metrik, demo & repo link.
-- `public.products`: Produk SaaS & developer tools, badge, status operasional.
-- `public.news_articles`: Berita teknis, devlog, dan case studies.
-- `public.experiences`: Riwayat pekerjaan, peran, pencapaian, dan tech stack.
+- `public.projects`: Proyek unggulan, arsitektur microservices, live demo & repo link.
+- `public.products`: Produk digital, tools & SDK, pricing type, status operasional.
+- `public.prompt_showcases`: Koleksi AI & System prompts, kategori/tipe, model AI, tags, dan instruksi.
+- `public.news_articles`: Berita teknis, catatan devlog, cover image, dan case studies.
+- `public.experiences`: Riwayat pekerjaan, peran, detail pencapaian, dan tech stack.
 - `public.educations`: Riwayat pendidikan formal.
 - `public.tech_stacks`: Kategori keahlian toolkit & icon resolver.
 - `public.impact_metrics`: Highlight metrik pencapaian performa sistem.
@@ -99,10 +132,12 @@ Buka browser:
 ## File Utama Proyek
 
 - [`app/page.tsx`](app/page.tsx) — Halaman utama publik portofolio dengan form WhatsApp.
-- [`app/admin/page.tsx`](app/admin/page.tsx) — Admin Dashboard CRUD interaktif.
-- [`app/api/portfolio/route.ts`](app/api/portfolio/route.ts) — Endpoint API publik yang mengambil 7 tabel sekaligus.
-- [`app/api/admin/[entity]/route.ts`](app/api/admin/[entity]/route.ts) — API CRUD protected untuk Admin.
-- [`scripts/schema.sql`](scripts/schema.sql) — Skrip DDL PostgreSQL dan data seed awal.
+- [`app/prompts/page.tsx`](app/prompts/page.tsx) — Halaman terpisah AI & System Prompt Showcase (Carousel + Grid View + Live Search).
+- [`app/news/page.tsx`](app/news/page.tsx) — Halaman terpisah katalog artikel & devlog engineering.
+- [`app/news/[slug]/page.tsx`](app/news/[slug]/page.tsx) — Halaman detail artikel teknis (Markdown rendering).
+- [`app/admin/page.tsx`](app/admin/page.tsx) — Admin Dashboard CRUD interaktif untuk seluruh 8 entitas.
+- [`components/PromptShowcaseCarousel.tsx`](components/PromptShowcaseCarousel.tsx) — Komponen carousel prompt interaktif dengan copy & expand modal.
+- [`Dockerfile`](Dockerfile) — Multi-stage production build Next.js 14 standalone untuk Dokploy.
+- [`scripts/schema.sql`](scripts/schema.sql) — Skrip DDL PostgreSQL 8 tabel dan data seed awal.
 - [`scripts/setup-db.js`](scripts/setup-db.js) — Skrip eksekusi migrasi & seeding otomatis.
 - [`lib/db.ts`](lib/db.ts) — PostgreSQL Connection Pool dengan auto-fallback.
-- [`docker-compose.yml`](docker-compose.yml) — Docker container PostgreSQL untuk lokal.

@@ -66,6 +66,21 @@ const ALLOWED_ENTITIES: Record<string, { table: string; fields: string[] }> = {
     table: "public.impact_metrics",
     fields: ["metric", "title", "detail", "order_index"],
   },
+  prompts: {
+    table: "public.prompt_showcases",
+    fields: [
+      "slug",
+      "title",
+      "type",
+      "description",
+      "prompt_text",
+      "tags",
+      "target_model",
+      "badge",
+      "instructions",
+      "order_index",
+    ],
+  },
 };
 
 export async function GET(

@@ -86,9 +86,25 @@ export interface ImpactMetric {
   order_index?: number;
 }
 
+export interface PromptShowcase {
+  id: string;
+  slug: string;
+  title: string;
+  type: string;
+  description: string;
+  prompt_text: string;
+  tags: string[];
+  target_model?: string;
+  badge?: string;
+  instructions?: string;
+  order_index?: number;
+  created_at?: string;
+}
+
 export interface PortfolioData {
   projects: Project[];
   products: Product[];
+  prompts?: PromptShowcase[];
   news: NewsArticle[];
   experiences?: Experience[];
   educations?: Education[];

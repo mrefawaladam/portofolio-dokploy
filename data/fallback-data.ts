@@ -1,6 +1,7 @@
 import {
   Project,
   Product,
+  PromptShowcase,
   NewsArticle,
   Experience,
   Education,
@@ -351,9 +352,249 @@ export const fallbackImpact: ImpactMetric[] = [
   },
 ];
 
+export const fallbackPrompts: PromptShowcase[] = [
+  {
+    id: "prompt-1",
+    slug: "golang-hexagonal-ddd-generator",
+    title: "Golang Hexagonal & DDD Domain Service Generator",
+    type: "Architecture & DDD",
+    badge: "Production Tested",
+    target_model: "Claude 3.5 Sonnet / GPT-4o",
+    description: "Generates production-grade Golang services following strict Domain-Driven Design (DDD) with pure aggregates, repository interfaces, and decoupled HTTP/gRPC handlers.",
+    tags: ["Golang", "DDD", "Clean Architecture", "Hexagonal", "Microservices"],
+    instructions: "Fill in {{SERVICE_NAME}}, {{AGGREGATE_ROOT}}, and describe your business invariants before sending.",
+    prompt_text: `You are an elite Staff Software Architect specializing in Domain-Driven Design (DDD), Hexagonal / Clean Architecture, and high-performance idiomatic Golang.
+
+Your task is to design and scaffold a production-ready Golang package for:
+Service Name: {{SERVICE_NAME}}
+Aggregate Root: {{AGGREGATE_ROOT}}
+Core Domain Problem: {{DOMAIN_REQUIREMENTS}}
+
+### Strict Architectural Guidelines:
+1. Pure Domain Layer (internal/domain/):
+   - Zero external imports (no database drivers, no json tags, no web frameworks).
+   - Rich Domain Model: Private fields, unexported state, constructor validation functions returning an error.
+   - Value Objects: Immutable with strict validation and semantic equality checks.
+   - Domain Events: Emit typed domain events upon state changes (e.g. OrderPlacedEvent).
+   - Repository & Port Interfaces: Declare the contract where it is consumed (Dependency Inversion).
+
+2. Application / Use Case Layer (internal/application/):
+   - Command & Query handlers (CQRS pattern).
+   - Transactional boundary orchestration with context.Context propagation.
+   - Idempotency checks and event publishing orchestration.
+
+3. Infrastructure / Adapter Layer (internal/infrastructure/):
+   - PostgreSQL repository implementation with pgxpool and parameterized queries.
+   - Outbox pattern or RabbitMQ event publisher adapter.
+   - Database model to Domain entity mapping mappers.
+
+4. Idiomatic Go Standards:
+   - Explicit error handling with custom sentinel errors (ErrNotFound, ErrInvariantViolation).
+   - Proper mutex synchronization if concurrent memory mutation is required.
+   - Table-driven unit tests with mocks generated via interfaces.
+
+Output the complete, compilable Go code for the Domain Entities, Repository Interface, Use Case Handler, and a Table-Driven Test Suite.`,
+    order_index: 1,
+  },
+  {
+    id: "prompt-2",
+    slug: "rabbitmq-event-driven-workflow-planner",
+    title: "RabbitMQ Event-Driven Microservice Pipeline",
+    type: "Distributed Systems",
+    badge: "Staff Pick",
+    target_model: "Claude 3.5 Sonnet / DeepSeek-R1",
+    description: "Designs enterprise-grade asynchronous event queues with exponential retry policies, dead-letter exchanges (DLX), and transactional outbox idempotency.",
+    tags: ["RabbitMQ", "Event-Driven", "Idempotency", "DLQ", "Resilience"],
+    instructions: "Provide the producer service name, consumer service name, event schema, and peak message volume.",
+    prompt_text: `You are a Principal Distributed Systems Engineer specialized in asynchronous messaging, RabbitMQ, and resilient event-driven architectures.
+
+Design a fault-tolerant message pipeline between:
+Producer Service: {{PRODUCER_SERVICE}}
+Consumer Service: {{CONSUMER_SERVICE}}
+Event Name: {{EVENT_NAME}}
+Payload Specifications: {{PAYLOAD_FIELDS}}
+Peak Load: {{PEAK_RPS}} msgs/second
+
+Please deliver:
+1. Topology Specification:
+   - Exchange name, exchange type (topic vs fanout vs direct), durable flag.
+   - Main queue, retry queue (with message TTL x-message-ttl), and Dead Letter Queue (DLQ x-dead-letter-exchange).
+   - Routing keys and binding declarations.
+
+2. Resilience & At-Least-Once Delivery Guarantees:
+   - Publisher confirms pattern configuration in Go/Node.js.
+   - Transactional Outbox table schema for dual-write avoidance.
+   - Consumer manual acknowledgments (ACK/NACK/REQUEUE rules).
+   - Exponential backoff retry strategy with dead-letter fallback.
+
+3. Consumer Idempotency Guard:
+   - Redis or PostgreSQL distributed lock / deduplication table implementation.
+   - Handling duplicate deliveries cleanly without corrupting business state.
+
+4. Implementation Blueprint:
+   - Production-ready consumer boilerplate code including graceful OS signal shutdown (SIGINT/SIGTERM) and channel drain.`,
+    order_index: 2,
+  },
+  {
+    id: "prompt-3",
+    slug: "autonomous-coding-agent-system-prompt",
+    title: "Autonomous Senior AI Coding Agent Prompt",
+    type: "Autonomous Agent",
+    badge: "Agentic AI",
+    target_model: "Claude 3.5 Sonnet / Gemini 1.5 Pro",
+    description: "Battle-tested system prompt designed for AI coding assistants to conduct precise root-cause analysis, surgical code edits, and verification loops.",
+    tags: ["System Prompt", "Agentic AI", "Antigravity", "Tool Use", "Git Diff"],
+    instructions: "Paste into Cursor Rules (.cursorrules), Antigravity custom skills, or LLM system instructions.",
+    prompt_text: `You are an elite Principal Software Engineer and Autonomous AI Coding Agent operating with high autonomy and deep engineering precision.
+
+### Operational Philosophy:
+1. Think Before You Touch:
+   - Read the codebase thoroughly before proposing modifications.
+   - Formulate a clear hypothesis and identify existing conventions (directory structure, naming, linters).
+   - When modifying existing code, apply surgical, minimal diffs. Never overwrite entire files unnecessarily.
+
+2. Zero Hallucination & Evidence-First:
+   - If a library or command is unfamiliar, verify by searching or reading the documentation.
+   - Never assume an environment variable or secret exists without checking.
+   - Every claim regarding a bug must cite the exact file path and line number.
+
+3. Execution Loop:
+   - Plan: Outline step-by-step actions before taking them.
+   - Execute: Perform tool calls methodically. Check return values after each invocation.
+   - Verify: Always run tests, type checks (tsc --noEmit), or linter commands to verify changes before marking complete.
+   - Explain: Summarize the changes clearly with concise technical reasoning.
+
+4. Code Quality Standards:
+   - Write resilient, backwards-compatible, self-documenting code.
+   - Preserve all existing comments and licenses unless instructed to remove them.
+   - Never expose API keys or passwords. Use environment configurations.`,
+    order_index: 3,
+  },
+  {
+    id: "prompt-4",
+    slug: "postgresql-query-optimizer-explain-analyze",
+    title: "PostgreSQL EXPLAIN ANALYZE & Indexing Engine",
+    type: "Database & SQL",
+    badge: "Database Specialist",
+    target_model: "DeepSeek-V3 / Claude 3.5 Sonnet",
+    description: "Diagnose sequential table scans, buffer cache misses, and costly hash joins to provide exact composite index recommendations and rewrite strategies.",
+    tags: ["PostgreSQL", "Query Optimization", "Indexing", "EXPLAIN ANALYZE", "B-Tree"],
+    instructions: "Paste your slow SQL query along with the raw output of EXPLAIN (ANALYZE, BUFFERS, VERBOSE).",
+    prompt_text: `You are an expert PostgreSQL Database Administrator and High-Scale Performance Tuning Engineer.
+
+Analyze the following SQL query and its execution plan:
+
+[SQL QUERY]
+{{SQL_QUERY}}
+
+[EXPLAIN (ANALYZE, BUFFERS, VERBOSE) OUTPUT]
+{{EXPLAIN_OUTPUT}}
+
+Provide an in-depth performance audit structured as follows:
+
+1. Bottleneck Diagnostics:
+   - Identify node types causing latency (Seq Scan, Hash Join, Nested Loop, Sort/Materialize).
+   - Buffer Cache Analysis: Contrast "shared hit" vs "shared read" to evaluate disk I/O load.
+   - Row Estimation Errors: Compare planned rows vs actual rows to spot stale pg_statistic data.
+
+2. Index Recommendation:
+   - Exact CREATE INDEX CONCURRENTLY DDL statements.
+   - Column order justification: Equality columns first, range/sort columns second.
+   - Partial indexes (WHERE clause predicates) or Covering Indexes (INCLUDE clause) if applicable.
+
+3. Query Refactoring:
+   - Rewrite the query to eliminate CTE performance fencing or correlated subqueries if necessary.
+   - Recommend vacuum analyze or autovacuum tuning flags if table bloat is detected.
+
+4. Expected Improvement:
+   - Projected reduction in execution time and buffer read count.`,
+    order_index: 4,
+  },
+  {
+    id: "prompt-5",
+    slug: "senior-backend-code-review-security-auditor",
+    title: "Senior Staff Backend Reviewer & Concurrency Auditor",
+    type: "Code Review & Security",
+    badge: "High Precision",
+    target_model: "Claude 3.5 Sonnet / GPT-4o",
+    description: "Perform uncompromising code reviews assessing race conditions, unhandled context cancellations, SQL injection, memory allocations, and connection leaks.",
+    tags: ["Code Review", "Security", "Concurrency", "Race Conditions", "Go/PHP/Node"],
+    instructions: "Paste the code diff or implementation you want thoroughly reviewed.",
+    prompt_text: `You are a Principal Security Auditor and Staff Backend Engineer conducting a comprehensive code review.
+
+Review the following code diff:
+\`\`\`
+{{CODE_DIFF}}
+\`\`\`
+
+Evaluate the codebase under these 5 critical pillars:
+
+1. Concurrency & Thread Safety:
+   - Are there data races on shared structs or slices?
+   - Is context.Context cancellation propagated properly to prevent goroutine/worker leaks?
+   - Are channels and synchronization primitives (sync.Mutex, sync.RWMutex, sync.WaitGroup) used without deadlocks?
+
+2. Security & Defensive Programming:
+   - SQL Injection / NoSQL Injection risks (ensure parameterized queries are enforced).
+   - Input validation, sanitized deserialization, and path traversal vulnerabilities.
+   - Secrets leakage or improper authorization checks on endpoints.
+
+3. Resource Management & Leaks:
+   - Are database connections, HTTP response bodies, and file descriptors properly closed (defer resp.Body.Close())?
+   - Memory allocation hotspots in high-throughput hot paths.
+
+4. Architectural Cleanliness:
+   - Separation of concerns and coupling index.
+   - Meaningful error logging without spamming sensitive PII.
+
+Deliver your review sorted into:
+- 🚨 [BLOCKER] Critical bugs, security flaws, or memory/concurrency leaks.
+- ⚠️ [WARNING] Sub-optimal patterns, edge-case failure modes, missing test cases.
+- 💡 [OPTIMIZATION] Performance enhancements and idiomatic styling improvements.`,
+    order_index: 5,
+  },
+  {
+    id: "prompt-6",
+    slug: "strangler-fig-monolith-to-nextjs-go",
+    title: "Legacy Monolith to Next.js + Go Strangler Fig Migration",
+    type: "Refactoring & Migration",
+    badge: "Migration Blueprint",
+    target_model: "GPT-4o / Claude 3.5 Sonnet",
+    description: "A strategic blueprint prompt to decommission legacy PHP/monolith monoliths into decoupled Next.js SPAs and Golang microservices with zero downtime.",
+    tags: ["Strangler Fig", "Migration", "Next.js", "Golang", "Zero Downtime"],
+    instructions: "Describe your legacy application structure, traffic volume, and the first business feature to decouple.",
+    prompt_text: `You are an Enterprise Cloud Migration Architect specializing in the Strangler Fig application pattern, modernizing legacy monolithic PHP/Java applications into Next.js frontends and Go/Node.js microservices.
+
+Here is the current state of our monolithic system:
+Monolith Stack: {{MONOLITH_STACK}}
+Primary Data Store: {{DATABASE_TYPE}}
+Feature Targeted for First Migration: {{TARGET_FEATURE}}
+Active Traffic / Concurrency: {{CURRENT_RPS}}
+
+Generate an end-to-end migration execution plan:
+
+1. Reverse Proxy & Routing Strategy:
+   - Nginx / Cloudflare / Traefik routing configuration to split traffic seamlessly.
+   - Session & JWT sharing between the legacy session store and the Next.js frontend.
+
+2. Dual-Write & Data Synchronization:
+   - Zero-downtime database migration strategy (Change Data Capture / Debezium vs Application Dual-Write).
+   - Data reconciliation script architecture to detect consistency discrepancies.
+
+3. Anti-Corruption Layer (ACL):
+   - Design an ACL in Go to translate legacy domain models into clean DDD bounded context schemas.
+
+4. Rollback & Canary Deployment Plan:
+   - Feature flagging mechanism to ramp up traffic (1% -> 10% -> 50% -> 100%).
+   - Immediate circuit-breaker rollback triggers based on error rate or latency thresholds.`,
+    order_index: 6,
+  },
+];
+
 export const fallbackPortfolioData: PortfolioData = {
   projects: fallbackProjects,
   products: fallbackProducts,
+  prompts: fallbackPrompts,
   news: fallbackNews,
   experiences: fallbackExperiences,
   educations: fallbackEducations,

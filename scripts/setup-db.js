@@ -63,6 +63,7 @@ async function run() {
       const tables = [
         "projects",
         "products",
+        "prompt_showcases",
         "news_articles",
         "experiences",
         "educations",
@@ -91,6 +92,7 @@ async function run() {
     const tables = [
       "projects",
       "products",
+      "prompt_showcases",
       "news_articles",
       "experiences",
       "educations",

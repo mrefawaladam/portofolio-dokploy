@@ -10,11 +10,12 @@ import {
   GraduationCap, MapPin, Phone, Globe, Cpu,
   Clock, Send, MessageSquare, Shield, Download,
 } from "lucide-react";
-import { PortfolioData } from "@/types/portfolio";
+import { PortfolioData, NewsArticle } from "@/types/portfolio";
 import {
   fallbackPortfolioData,
   fallbackProjects,
   fallbackProducts,
+  fallbackPrompts,
   fallbackNews,
   fallbackExperiences,
   fallbackEducations,
@@ -23,6 +24,8 @@ import {
 } from "@/data/fallback-data";
 import { getPortfolioData } from "@/lib/portfolio";
 import TypewriterRole from "@/components/TypewriterRole";
+import MarkdownViewer from "@/components/MarkdownViewer";
+import PromptShowcaseCarousel from "@/components/PromptShowcaseCarousel";
 
 const heroRoles = [
   "Backend Programmer & Full Stack Engineer",
@@ -38,14 +41,15 @@ const reveal = {
 };
 
 const navItems = [
-  ["Projects", "#projects"],
-  ["Products", "#products"],
-  ["News", "#news"],
-  ["Toolkit", "#expertise"],
-  ["Experience", "#experience"],
-  ["Education", "#education"],
-  ["About", "#about"],
-  ["Contact", "#contact"],
+  ["Projects", "/#projects"],
+  ["Products", "/#products"],
+  ["Prompts", "/prompts"],
+  ["News", "/news"],
+  ["Toolkit", "/#expertise"],
+  ["Experience", "/#experience"],
+  ["Education", "/#education"],
+  ["About", "/#about"],
+  ["Contact", "/#contact"],
 ];
 
 const categories = ["All", "Backend", "Architecture", "Full Stack"];
@@ -61,11 +65,29 @@ const ICON_MAP: Record<string, any> = {
   Layers3,
 };
 
+function formatDisplayDate(val: any): string {
+  if (!val) return "OCT 2026";
+  if (val instanceof Date) {
+    return val.toLocaleDateString("en-US", { month: "short", year: "numeric" }).toUpperCase();
+  }
+  const str = String(val);
+  // If ISO date string like "2026-10-30T..."
+  if (str.includes("-") && !isNaN(Date.parse(str))) {
+    try {
+      return new Date(str).toLocaleDateString("en-US", { month: "short", year: "numeric" }).toUpperCase();
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(fallbackPortfolioData);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [loading, setLoading] = useState(true);
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
   // WhatsApp Contact Form State
   const [clientName, setClientName] = useState("");
@@ -81,6 +103,7 @@ export default function Home() {
 
   const projects = portfolioData.projects?.length ? portfolioData.projects : fallbackProjects;
   const products = portfolioData.products?.length ? portfolioData.products : fallbackProducts;
+  const prompts = portfolioData.prompts?.length ? portfolioData.prompts : fallbackPrompts;
   const news = portfolioData.news?.length ? portfolioData.news : fallbackNews;
   const experiences = portfolioData.experiences?.length ? portfolioData.experiences : fallbackExperiences;
   const educations = portfolioData.educations?.length ? portfolioData.educations : fallbackEducations;
@@ -125,7 +148,11 @@ export default function Home() {
             />
           </a>
           <nav className="hidden items-center gap-5 rounded-full bg-white/90 px-6 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm md:flex">
-            {navItems.map(([label, href]) => <a key={label} href={href} className="transition hover:text-blue-600">{label}</a>)}
+            {navItems.map(([label, href]) => (
+              <Link key={label} href={href} className="transition hover:text-blue-600">
+                {label}
+              </Link>
+            ))}
           </nav>
           <div className="flex items-center gap-2">
             <Link
@@ -142,7 +169,11 @@ export default function Home() {
 
         {menuOpen && (
           <nav className="absolute right-4 top-[66px] z-50 flex min-w-44 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-xs shadow-xl md:hidden">
-            {navItems.map(([label, href]) => <a key={label} href={href} onClick={() => setMenuOpen(false)} className="py-1">{label}</a>)}
+            {navItems.map(([label, href]) => (
+              <Link key={label} href={href} onClick={() => setMenuOpen(false)} className="py-1">
+                {label}
+              </Link>
+            ))}
             <Link href="/admin" onClick={() => setMenuOpen(false)} className="py-1 text-blue-600 font-bold flex items-center gap-1 border-t border-slate-100 pt-2">
               <Shield size={14} /> Admin Portal
             </Link>
@@ -287,9 +318,20 @@ export default function Home() {
                 viewport={{ once: true, amount: 0.1 }}
                 variants={reveal}
                 transition={{ delay: i * 0.05 }}
-                className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+                className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
               >
                 <div>
+                  {item.image_url && (
+                    <div className="-mx-6 -mt-6 mb-4 h-44 overflow-hidden border-b border-slate-100 bg-slate-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-2">
                     <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">
                       {item.category || "Full Stack"}
@@ -425,16 +467,62 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 03: NEWS & DEVLOG */}
+      {/* SECTION 03: PROMPT SHOWCASE & AI WORKFLOWS */}
+      <section id="prompts" className="container-shell py-20 md:py-28 border-t border-slate-200">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={reveal}
+          className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"
+        >
+          <div>
+            <p className="eyebrow text-blue-700">03 / Prompt Engineering</p>
+            <h2 className="section-title mt-4">
+              AI &amp; System<br />
+              <span className="text-slate-400">Prompt Showcase.</span>
+            </h2>
+          </div>
+          <div className="flex flex-col items-start md:items-end gap-3">
+            <p className="max-w-md text-sm leading-6 text-slate-600 md:text-right">
+              A curated collection of production system prompts, architecture generators, and autonomous agent instructions with interactive tags, types, and carousel navigation.
+            </p>
+            <Link
+              href="/prompts"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200/80 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 hover:text-blue-900 transition"
+            >
+              Open Dedicated Prompts Page <ArrowRight size={13} />
+            </Link>
+          </div>
+        </motion.div>
+
+        {loading ? (
+          <div className="h-80 rounded-3xl border border-slate-200 bg-white/60 p-8 animate-pulse flex items-center justify-center">
+            <span className="text-xs text-slate-400 font-mono">Loading prompt showcase...</span>
+          </div>
+        ) : (
+          <PromptShowcaseCarousel prompts={prompts} />
+        )}
+      </section>
+
+      {/* SECTION 04: NEWS & DEVLOG */}
       <section id="news" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="eyebrow text-blue-700">03 / News & Devlog</p>
+            <p className="eyebrow text-blue-700">04 / News & Devlog</p>
             <h2 className="section-title mt-4">Engineering<br /><span className="text-slate-400">Updates.</span></h2>
           </div>
-          <p className="max-w-sm text-sm leading-6 text-slate-600">
-            Case studies, technical deep-dives, architectural postmortems, and latest milestones.
-          </p>
+          <div className="flex flex-col items-start md:items-end gap-3">
+            <p className="max-w-sm text-sm leading-6 text-slate-600 md:text-right">
+              Case studies, technical deep-dives, architectural postmortems, and latest milestones.
+            </p>
+            <Link
+              href="/news"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200/80 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 hover:text-blue-900 transition"
+            >
+              Explore All News &amp; Articles <ArrowRight size={13} />
+            </Link>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -446,9 +534,21 @@ export default function Home() {
               viewport={{ once: true, amount: 0.1 }}
               variants={reveal}
               transition={{ delay: i * 0.05 }}
-              className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+              onClick={() => setSelectedArticle(item)}
+              className="group flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
             >
               <div>
+                {item.cover_image && (
+                  <div className="-mx-6 -mt-6 mb-4 h-44 overflow-hidden border-b border-slate-100 bg-slate-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.cover_image}
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="font-semibold text-blue-700">{item.category}</span>
                   <span className="flex items-center gap-1"><Clock size={12} /> {item.read_time}</span>
@@ -464,7 +564,7 @@ export default function Home() {
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  {item.published_at}
+                  {formatDisplayDate(item.published_at)}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 group-hover:translate-x-1 transition">
                   Read article <ArrowRight size={13} />
@@ -475,10 +575,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 04: TOOLKIT */}
+      {/* SECTION 05: TOOLKIT */}
       <section id="expertise" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div><p className="eyebrow text-blue-700">04 / The toolkit</p><h2 className="section-title mt-4">Good tools.<br /><span className="text-slate-400">Better systems.</span></h2></div>
+          <div><p className="eyebrow text-blue-700">05 / The toolkit</p><h2 className="section-title mt-4">Good tools.<br /><span className="text-slate-400">Better systems.</span></h2></div>
           <p className="max-w-sm text-sm leading-6 text-slate-600">Core technologies used to design resilient backend services, scalable data pipelines, and responsive web systems.</p>
         </motion.div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
@@ -516,10 +616,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 05: MEASURABLE OUTCOMES */}
+      {/* SECTION 06: MEASURABLE OUTCOMES */}
       <section id="impact" className="bg-gradient-to-br from-[#0b1535] via-[#10245e] to-[#0e7490] py-20 text-white md:py-28">
         <div className="container-shell">
-          <div className="mb-10"><p className="eyebrow text-cyan-200">05 / Measurable outcomes</p><h2 className="section-title mt-4">Build with intent.<br /><span className="text-white/45">Measure the difference.</span></h2></div>
+          <div className="mb-10"><p className="eyebrow text-cyan-200">06 / Measurable outcomes</p><h2 className="section-title mt-4">Build with intent.<br /><span className="text-white/45">Measure the difference.</span></h2></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {impact.map((item, i) => (
               <motion.article
@@ -542,11 +642,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 06: EXPERIENCE */}
+      {/* SECTION 07: EXPERIENCE */}
       <section id="experience" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-14">
           <div>
-            <p className="eyebrow text-blue-700">06 / Experience</p>
+            <p className="eyebrow text-blue-700">07 / Experience</p>
             <h2 className="section-title mt-4">
               A track record <br />
               of <span className="text-slate-400">building.</span>
@@ -605,11 +705,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 07: EDUCATION */}
+      {/* SECTION 08: EDUCATION */}
       <section id="education" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="eyebrow text-blue-700">07 / Education</p>
+            <p className="eyebrow text-blue-700">08 / Education</p>
             <h2 className="section-title mt-4">Academic<br /><span className="text-slate-400">Foundation.</span></h2>
           </div>
           <p className="max-w-sm text-sm leading-6 text-slate-600">
@@ -644,11 +744,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 08: ABOUT & PHILOSOPHY */}
+      {/* SECTION 09: ABOUT & PHILOSOPHY */}
       <section id="about" className="container-shell pb-20 md:pb-28">
         <div className="grid gap-4 md:grid-cols-5">
           <article className="rounded-2xl bg-[#1d4ed8] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-600 p-7 text-white shadow-sm md:col-span-3 md:p-10">
-            <p className="eyebrow text-cyan-100">08 / Engineering philosophy · Muhammad Refa Walada Mushtofa</p>
+            <p className="eyebrow text-cyan-100">09 / Engineering philosophy · Muhammad Refa Walada Mushtofa</p>
             <h2 className="mt-8 max-w-lg text-4xl font-black leading-[.98] tracking-[-.07em] md:text-5xl">
               Good engineering is invisible when it works.
             </h2>
@@ -690,13 +790,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 09: CONTACT FORM & FOOTER */}
+      {/* SECTION 10: CONTACT FORM & FOOTER */}
       <footer id="contact" className="bg-[#0b1020] text-white">
         <div className="container-shell py-16 md:py-24">
           <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr]">
             {/* Left: Contact Header & WhatsApp Form */}
             <div>
-              <p className="eyebrow text-cyan-300">09 / Have a project or inquiry?</p>
+              <p className="eyebrow text-cyan-300">10 / Have a project or inquiry?</p>
               <h2 className="mt-4 text-4xl font-black leading-[.95] tracking-[-.08em] sm:text-5xl md:text-6xl">
                 Let&apos;s build<br />
                 <span className="bg-gradient-to-r from-blue-300 via-sky-200 to-cyan-300 bg-clip-text text-transparent">
@@ -848,6 +948,96 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* ARTICLE READER MODAL WITH MARKDOWN VIEWER */}
+      {selectedArticle && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md"
+          onClick={() => setSelectedArticle(null)}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl sm:p-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Controls */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                  {selectedArticle.category}
+                </span>
+                <span className="flex items-center gap-1 text-xs font-medium text-slate-400">
+                  <Clock size={12} /> {selectedArticle.read_time}
+                </span>
+                <span className="text-xs text-slate-300">•</span>
+                <span className="text-xs text-slate-400">{formatDisplayDate(selectedArticle.published_at)}</span>
+              </div>
+              <button
+                onClick={() => setSelectedArticle(null)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Cover Image */}
+            {selectedArticle.cover_image && (
+              <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedArticle.cover_image}
+                  alt={selectedArticle.title}
+                  className="max-h-80 w-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* Title & Excerpt */}
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mb-3">
+              {selectedArticle.title}
+            </h1>
+            <p className="text-sm font-medium text-slate-500 leading-relaxed mb-6 pb-6 border-b border-slate-100">
+              {selectedArticle.excerpt}
+            </p>
+
+            {/* Full Markdown Content */}
+            <div className="mb-8">
+              <MarkdownViewer content={selectedArticle.content || selectedArticle.excerpt} />
+            </div>
+
+            {/* Tags & Footer Navigation */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-slate-100">
+              <div className="flex flex-wrap gap-1.5">
+                {selectedArticle.tags?.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/news/${selectedArticle.slug}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+                >
+                  Dedicated Page <ArrowUpRight size={13} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSelectedArticle(null)}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition"
+                >
+                  Close Reader
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

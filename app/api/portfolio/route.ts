@@ -30,9 +30,18 @@ export async function GET() {
         client.query("SELECT * FROM public.impact_metrics ORDER BY order_index ASC"),
       ]);
 
+      let promptsRows = [];
+      try {
+        const pRes = await client.query("SELECT * FROM public.prompt_showcases ORDER BY order_index ASC, created_at DESC");
+        promptsRows = pRes.rows;
+      } catch {
+        promptsRows = [];
+      }
+
       return NextResponse.json({
         projects: projectsRes.rows.length > 0 ? projectsRes.rows : fallbackPortfolioData.projects,
         products: productsRes.rows.length > 0 ? productsRes.rows : fallbackPortfolioData.products,
+        prompts: promptsRows.length > 0 ? promptsRows : fallbackPortfolioData.prompts,
         news: newsRes.rows.length > 0 ? newsRes.rows : fallbackPortfolioData.news,
         experiences: experiencesRes.rows.length > 0 ? experiencesRes.rows : fallbackPortfolioData.experiences,
         educations: educationsRes.rows.length > 0 ? educationsRes.rows : fallbackPortfolioData.educations,

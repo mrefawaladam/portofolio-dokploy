@@ -11,6 +11,7 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     return {
       projects: data.projects || fallbackPortfolioData.projects,
       products: data.products || fallbackPortfolioData.products,
+      prompts: data.prompts || fallbackPortfolioData.prompts,
       news: data.news || fallbackPortfolioData.news,
       experiences: data.experiences || fallbackPortfolioData.experiences,
       educations: data.educations || fallbackPortfolioData.educations,

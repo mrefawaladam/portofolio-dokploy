@@ -6,17 +6,25 @@ import Image from "next/image";
 import {
   FolderGit2, Boxes, Newspaper, Briefcase, GraduationCap,
   Layers, TrendingUp, Plus, Edit2, Trash2, KeyRound, LogOut,
-  RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ExternalLink
+  RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ExternalLink,
+  Image as ImageIcon, UploadCloud, X, Sparkles
 } from "lucide-react";
+import MarkdownEditor from "@/components/MarkdownEditor";
+import FileUploadZone from "@/components/FileUploadZone";
 
-type TabKey = "projects" | "products" | "news" | "experiences" | "educations" | "stacks" | "impact";
+type TabKey = "projects" | "products" | "prompts" | "news" | "experiences" | "educations" | "stacks" | "impact";
 
 interface TabConfig {
   key: TabKey;
   label: string;
   icon: any;
   singular: string;
-  fields: { name: string; label: string; type: "text" | "textarea" | "number" | "boolean" | "tags"; required?: boolean }[];
+  fields: {
+    name: string;
+    label: string;
+    type: "text" | "textarea" | "number" | "boolean" | "tags" | "markdown" | "image";
+    required?: boolean;
+  }[];
 }
 
 const TABS: TabConfig[] = [
@@ -29,7 +37,8 @@ const TABS: TabConfig[] = [
       { name: "title", label: "Project Title", type: "text", required: true },
       { name: "slug", label: "Slug", type: "text", required: true },
       { name: "tagline", label: "Tagline", type: "text" },
-      { name: "description", label: "Description", type: "textarea", required: true },
+      { name: "image_url", label: "Project Cover / Screenshot Image", type: "image" },
+      { name: "description", label: "Description (Supports Markdown)", type: "markdown", required: true },
       { name: "category", label: "Category (e.g. Backend, Full Stack, Architecture)", type: "text" },
       { name: "tags", label: "Tags (comma-separated, e.g. Golang, RabbitMQ, Docker)", type: "tags" },
       { name: "demo_url", label: "Demo / Live URL", type: "text" },
@@ -59,6 +68,24 @@ const TABS: TabConfig[] = [
     ],
   },
   {
+    key: "prompts",
+    label: "Prompt Showcase",
+    icon: Sparkles,
+    singular: "Prompt",
+    fields: [
+      { name: "title", label: "Prompt Title", type: "text", required: true },
+      { name: "slug", label: "Slug", type: "text", required: true },
+      { name: "type", label: "Type (e.g. Architecture & DDD, Distributed Systems, Autonomous Agent)", type: "text", required: true },
+      { name: "target_model", label: "Target Model (e.g. Claude 3.5 Sonnet, GPT-4o, DeepSeek-V3)", type: "text" },
+      { name: "badge", label: "Badge (e.g. Production Tested, Staff Pick, High Accuracy)", type: "text" },
+      { name: "description", label: "Short Description / Purpose", type: "textarea", required: true },
+      { name: "tags", label: "Tags (comma-separated, e.g. Golang, DDD, Clean Architecture)", type: "tags" },
+      { name: "prompt_text", label: "Prompt Content (Full Prompt / Template)", type: "markdown", required: true },
+      { name: "instructions", label: "Usage Instructions / Tips", type: "textarea" },
+      { name: "order_index", label: "Display Order", type: "number" },
+    ],
+  },
+  {
     key: "news",
     label: "News & Articles",
     icon: Newspaper,
@@ -66,8 +93,9 @@ const TABS: TabConfig[] = [
     fields: [
       { name: "title", label: "Article Title", type: "text", required: true },
       { name: "slug", label: "Slug", type: "text", required: true },
+      { name: "cover_image", label: "Cover Image", type: "image" },
       { name: "excerpt", label: "Excerpt Summary", type: "textarea", required: true },
-      { name: "content", label: "Full Content", type: "textarea" },
+      { name: "content", label: "Full Content (Markdown & Multi-upload)", type: "markdown" },
       { name: "category", label: "Category (Architecture, Engineering, Milestone)", type: "text" },
       { name: "read_time", label: "Read Time (e.g. 4 min read)", type: "text" },
       { name: "tags", label: "Tags (comma-separated)", type: "tags" },
@@ -483,18 +511,30 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-slate-100">
                   {items.map((item) => {
                     const primaryTitle = item.title || item.name || item.role || item.institution || item.metric || "Untitled";
-                    const subtitle = item.tagline || item.headline || item.company || item.degree || item.note || item.excerpt || "";
+                    const subtitle = item.tagline || item.headline || item.description || item.company || item.degree || item.note || item.excerpt || "";
                     const tags = item.tags || (item.category ? [item.category] : []);
 
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/80 transition">
                         <td className="px-6 py-4">
-                          <div className="font-bold text-slate-900 text-sm">{primaryTitle}</div>
-                          {subtitle && <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-sm">{subtitle}</div>}
+                          <div className="flex items-center gap-3">
+                            {(item.cover_image || item.image_url) && (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={item.cover_image || item.image_url}
+                                alt={primaryTitle}
+                                className="h-10 w-12 shrink-0 rounded-lg object-cover border border-slate-200 shadow-xs"
+                              />
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900 text-sm">{primaryTitle}</div>
+                              {subtitle && <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-sm">{subtitle}</div>}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-xs text-slate-600 font-medium">
-                            {item.brand || item.period || item.pricing_type || item.read_time || item.slug || "-"}
+                            {item.type || item.brand || item.period || item.pricing_type || item.read_time || item.slug || "-"}
                           </div>
                           {item.metrics && (
                             <span className="inline-block mt-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">
@@ -553,7 +593,7 @@ export default function AdminPage() {
       {/* CREATE / EDIT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -569,8 +609,66 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-5">
               {currentTabConfig.fields.map((field) => {
+                if (field.type === "markdown") {
+                  return (
+                    <div key={field.name}>
+                      <MarkdownEditor
+                        value={formData[field.name] || ""}
+                        onChange={(val) => setFormData({ ...formData, [field.name]: val })}
+                        label={field.label}
+                        required={field.required}
+                        adminKey={adminKey}
+                        currentCoverUrl={formData["cover_image"] || formData["image_url"]}
+                        onSetCover={(url) => {
+                          const coverKey = activeTab === "news" ? "cover_image" : "image_url";
+                          setFormData((prev) => ({ ...prev, [coverKey]: url }));
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (field.type === "image") {
+                  return (
+                    <div key={field.name} className="space-y-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        {formData[field.name] && (
+                          <div className="relative group shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={formData[field.name]}
+                              alt="Preview"
+                              className="h-16 w-24 rounded-xl object-cover border border-slate-200 shadow-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, [field.name]: "" })}
+                              className="absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white shadow-xs hover:bg-red-600 transition"
+                              title="Remove image"
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
+                        )}
+                        <div className="w-full flex-1">
+                          <input
+                            type="text"
+                            value={formData[field.name] ?? ""}
+                            onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                            placeholder="e.g. /uploads/image.png or paste direct URL"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 if (field.type === "textarea") {
                   return (
                     <div key={field.name}>
