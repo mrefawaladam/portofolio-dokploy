@@ -1,21 +1,18 @@
 -- ==============================================================================
 -- DATABASE SCHEMA: refa_portfolio
--- Native PostgreSQL Schema for Projects, Products, and News/Devlog
+-- Comprehensive Native PostgreSQL Schema for Portfolio & Dokploy Production
 -- ==============================================================================
 
--- 1. Create database if running manually:
--- CREATE DATABASE refa_portfolio;
--- \c refa_portfolio;
-
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ==============================================================================
--- 2. TABLE: projects (Showcase Project & Arsitektur)
+-- 1. TABLE: projects (Showcase Project & Arsitektur)
 -- ==============================================================================
 DROP TABLE IF EXISTS public.projects CASCADE;
 
 CREATE TABLE public.projects (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     slug VARCHAR(255) UNIQUE NOT NULL,
     title VARCHAR(255) NOT NULL,
     tagline VARCHAR(255),
@@ -32,12 +29,12 @@ CREATE TABLE public.projects (
 );
 
 -- ==============================================================================
--- 3. TABLE: products (Katalog Produk Digital & SaaS)
+-- 2. TABLE: products (Katalog Produk Digital & SaaS)
 -- ==============================================================================
 DROP TABLE IF EXISTS public.products CASCADE;
 
 CREATE TABLE public.products (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     slug VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     headline VARCHAR(255) NOT NULL,
@@ -53,12 +50,12 @@ CREATE TABLE public.products (
 );
 
 -- ==============================================================================
--- 4. TABLE: news_articles (Berita, Devlog, & Update Teknis)
+-- 3. TABLE: news_articles (Berita, Devlog, & Update Teknis)
 -- ==============================================================================
 DROP TABLE IF EXISTS public.news_articles CASCADE;
 
 CREATE TABLE public.news_articles (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     slug VARCHAR(255) UNIQUE NOT NULL,
     title VARCHAR(255) NOT NULL,
     excerpt TEXT NOT NULL,
@@ -72,10 +69,71 @@ CREATE TABLE public.news_articles (
 );
 
 -- ==============================================================================
--- 5. INITIAL SEEDS (Data Awal Sesuai CV & Profil)
+-- 4. TABLE: experiences (Riwayat Karir & Jabatan)
+-- ==============================================================================
+DROP TABLE IF EXISTS public.experiences CASCADE;
+
+CREATE TABLE public.experiences (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    period VARCHAR(100) NOT NULL,
+    company VARCHAR(255) NOT NULL,
+    brand VARCHAR(255) NOT NULL,
+    role VARCHAR(255) NOT NULL,
+    detail TEXT NOT NULL,
+    tags TEXT[] DEFAULT '{}',
+    url TEXT,
+    order_index INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ==============================================================================
+-- 5. TABLE: educations (Riwayat Pendidikan)
+-- ==============================================================================
+DROP TABLE IF EXISTS public.educations CASCADE;
+
+CREATE TABLE public.educations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    institution VARCHAR(255) NOT NULL,
+    degree VARCHAR(255) NOT NULL,
+    period VARCHAR(100) NOT NULL,
+    detail TEXT,
+    order_index INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ==============================================================================
+-- 6. TABLE: tech_stacks (Toolkit & Kategori Keahlian)
+-- ==============================================================================
+DROP TABLE IF EXISTS public.tech_stacks CASCADE;
+
+CREATE TABLE public.tech_stacks (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    icon_name VARCHAR(50) DEFAULT 'ServerCog',
+    note TEXT NOT NULL,
+    tags TEXT[] DEFAULT '{}',
+    grid_span VARCHAR(50) DEFAULT 'lg:col-span-3',
+    order_index INT DEFAULT 0
+);
+
+-- ==============================================================================
+-- 7. TABLE: impact_metrics (Highlight Metrik Pencapaian)
+-- ==============================================================================
+DROP TABLE IF EXISTS public.impact_metrics CASCADE;
+
+CREATE TABLE public.impact_metrics (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    metric VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    detail TEXT NOT NULL,
+    order_index INT DEFAULT 0
+);
+
+-- ==============================================================================
+-- INITIAL SEED DATA
 -- ==============================================================================
 
--- SEED: Projects
+-- Projects
 INSERT INTO public.projects (slug, title, tagline, description, category, tags, demo_url, github_url, metrics, featured, order_index) VALUES
 (
     'nexmedis-healthcare-ai',
@@ -156,7 +214,7 @@ INSERT INTO public.projects (slug, title, tagline, description, category, tags, 
     6
 );
 
--- SEED: Products
+-- Products
 INSERT INTO public.products (slug, name, headline, description, status, pricing_type, product_url, github_url, badge, icon_name, order_index) VALUES
 (
     'event-flow-toolkit',
@@ -198,7 +256,7 @@ INSERT INTO public.products (slug, name, headline, description, status, pricing_
     3
 );
 
--- SEED: News Articles
+-- News Articles
 INSERT INTO public.news_articles (slug, title, excerpt, content, category, read_time, tags, published) VALUES
 (
     'modernizing-legacy-monolith-to-nextjs-and-ddd',
@@ -229,4 +287,174 @@ INSERT INTO public.news_articles (slug, title, excerpt, content, category, read_
     '5 min read',
     ARRAY['Golang', 'gRPC', 'Healthcare AI', 'CI/CD'],
     true
+);
+
+-- Experiences
+INSERT INTO public.experiences (period, company, brand, role, detail, tags, url, order_index) VALUES
+(
+    'MAR 2025 — APR 2026',
+    'PT Ekosistem Kesehatan Indonesia',
+    'Nexmedis · Full-time',
+    'Backend Developer',
+    'Developed backend services for AI-driven healthcare platforms using Golang and Node.js. Designed gRPC-based inter-service communication and RabbitMQ event-driven workflows. Optimized performance with Redis caching and CI/CD pipelines, directly contributing to a patient room transfer system.',
+    ARRAY['Golang', 'Node.js', 'gRPC', 'RabbitMQ', 'Redis', 'Docker', 'CI/CD', 'Healthcare AI'],
+    'https://nexmedis.com/',
+    1
+),
+(
+    'JUN 2022 — JAN 2025',
+    'PT Visi Multi Media Aditama',
+    'rSchoolToday · Remote, Contract',
+    'Full Stack Engineer',
+    'Built and maintained end-to-end web applications using Symfony/Laravel and Next.js. Migrated legacy architectures to modern stacks, cutting latency by 35% through RabbitMQ event synchronization. Designed REST APIs and managed Docker and AWS (EC2, S3) deployments.',
+    ARRAY['Next.js', 'Symfony', 'Laravel', 'RabbitMQ', 'AWS (EC2, S3)', 'Docker', 'REST APIs'],
+    'https://rschooltoday.com',
+    2
+),
+(
+    'APR 2023 — AUG 2025',
+    'PT NICE Media Technology',
+    'Product & Engineering · Remote, Full-time',
+    'IT Product Manager',
+    'Managed full product lifecycles for education technology platforms. Collaborated closely with backend and frontend engineering teams to define system architecture, technical scope, and aligned product goals with high-availability scalability.',
+    ARRAY['Product Lifecycle', 'Architecture Strategy', 'EdTech', 'Team Leadership'],
+    NULL,
+    3
+),
+(
+    'MAY 2021 — APR 2023',
+    'PT NICE Media Technology',
+    'Engineering · Remote, Full-time',
+    'Senior Full Stack Engineer',
+    'Led development of multiple production systems using Laravel, Livewire, Docker, and relational databases. Designed scalable backend structures, collaborated on frontend features, and mentored junior engineers with code reviews.',
+    ARRAY['Laravel', 'Livewire', 'Docker', 'Relational Databases', 'Mentoring'],
+    NULL,
+    4
+),
+(
+    'SEP 2019 — MAY 2021',
+    'PT NICE Media Technology',
+    'Engineering · Remote, Full-time',
+    'Full Stack Engineer',
+    'Developed a comprehensive school payment system using Laravel, handling high-volume billing and financial transaction flows while improving system maintainability through refactoring.',
+    ARRAY['Laravel', 'School Payment', 'Billing Pipelines', 'Refactoring'],
+    NULL,
+    5
+),
+(
+    'OCT 2021 — APR 2022',
+    'PT IGRA Solusi Kreatif',
+    'Fintech & E-Commerce · Contract',
+    'Team Lead Backend Developer',
+    'Led backend engineering for e-commerce and digital wallet platforms. Improved transaction throughput by 40% through backend optimization and database tuning.',
+    ARRAY['Team Lead', 'E-Commerce', 'Digital Wallet', '+40% Throughput', 'Database Tuning'],
+    NULL,
+    6
+),
+(
+    'DEC 2021 — APR 2023',
+    'PT Atlas Global Teknologi',
+    'Enterprise Solutions · Part-time',
+    'Part-Time Full Stack Developer',
+    'Developed SME enterprise applications including a laundry management system, improving operational efficiency and daily tracking by 30%.',
+    ARRAY['Full Stack', 'SME Operations', 'Operational Efficiency', 'MySQL'],
+    NULL,
+    7
+),
+(
+    'JAN 2019 — DEC 2020',
+    'PT. INOSOFT TRANS SISTEM',
+    'Surabaya · Internship',
+    'Software Engineer Intern',
+    'Contributed to developing and maintaining client-facing web and desktop applications utilizing Laravel, CodeIgniter, and .NET.',
+    ARRAY['Laravel', 'CodeIgniter', '.NET', 'Desktop & Web Apps'],
+    NULL,
+    8
+);
+
+-- Educations
+INSERT INTO public.educations (institution, degree, period, detail, order_index) VALUES
+(
+    'Politeknik Negeri Malang',
+    'Bachelor in Applied Informatics Engineering (D4 Teknik Informatika)',
+    'January 2020 — December 2024',
+    'Specialized in software engineering, distributed application architecture, and database systems.',
+    1
+),
+(
+    'SMK PGRI 2 Ponorogo',
+    'High School in Software Engineering (Rekayasa Perangkat Lunak)',
+    'January 2017 — December 2020',
+    'Foundation in algorithms, object-oriented programming, and web development fundamentals.',
+    2
+);
+
+-- Tech Stacks
+INSERT INTO public.tech_stacks (title, icon_name, note, tags, grid_span, order_index) VALUES
+(
+    'Backend engineering',
+    'ServerCog',
+    'High-concurrency logic, robust business rules, and high-performance server-side services.',
+    ARRAY['Golang (Gin, Echo)', 'PHP (Laravel, Symfony)', 'Node.js', 'Python', 'REST & gRPC APIs'],
+    'lg:col-span-3',
+    1
+),
+(
+    'Frontend systems',
+    'Braces',
+    'Modern, reactive user interfaces that make complex enterprise products intuitive.',
+    ARRAY['Next.js', 'React.js', 'Vue.js', 'Livewire', 'Tailwind CSS'],
+    'lg:col-span-3',
+    2
+),
+(
+    'Architecture & systems',
+    'Network',
+    'Engineered for real-world load, domain clarity, and scalable multi-service workflows.',
+    ARRAY['Distributed Systems', 'Microservices', 'Event-Driven', 'DDD', 'Multitenant'],
+    'lg:col-span-2',
+    3
+),
+(
+    'Messaging & data',
+    'Database',
+    'Reliable async pipelines, caching strategies, and normalized data stores.',
+    ARRAY['RabbitMQ', 'Redis', 'PostgreSQL', 'MySQL', 'MongoDB'],
+    'lg:col-span-2',
+    4
+),
+(
+    'Cloud, DevOps & tools',
+    'Workflow',
+    'Containerized environments, automated pipelines, and operational developer tools.',
+    ARRAY['Docker', 'FrankenPHP', 'AWS (EC2, S3)', 'CI/CD', 'Git', 'Jira', 'n8n'],
+    'lg:col-span-2',
+    5
+);
+
+-- Impact Metrics
+INSERT INTO public.impact_metrics (metric, title, detail, order_index) VALUES
+(
+    '+70%',
+    'System performance boost',
+    'Revamped monolithic legacy PHP into Domain-Driven Design (DDD), modern Next.js frontend, and Redis caching.',
+    1
+),
+(
+    '-35%',
+    'Lower processing latency',
+    'Implemented RabbitMQ-powered event-driven data synchronization at rSchoolToday.',
+    2
+),
+(
+    '+40%',
+    'Transaction throughput',
+    'Optimized backend queries and relational database tuning for e-commerce and digital wallet systems at PT IGRA.',
+    3
+),
+(
+    '+30%',
+    'SME operational efficiency',
+    'Delivered enterprise SME management systems (e.g. Laundry Management) to streamline daily workflows.',
+    4
 );

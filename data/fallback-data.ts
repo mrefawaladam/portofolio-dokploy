@@ -1,4 +1,13 @@
-import { Project, Product, NewsArticle, PortfolioData } from "@/types/portfolio";
+import {
+  Project,
+  Product,
+  NewsArticle,
+  Experience,
+  Education,
+  TechStack,
+  ImpactMetric,
+  PortfolioData,
+} from "@/types/portfolio";
 
 export const fallbackProjects: Project[] = [
   {
@@ -159,8 +168,195 @@ export const fallbackNews: NewsArticle[] = [
   },
 ];
 
+export const fallbackExperiences: Experience[] = [
+  {
+    id: "e1",
+    period: "MAR 2025 — APR 2026",
+    company: "PT Ekosistem Kesehatan Indonesia",
+    brand: "Nexmedis · Full-time",
+    role: "Backend Developer",
+    detail: "Developed backend services for AI-driven healthcare platforms using Golang and Node.js. Designed gRPC-based inter-service communication and RabbitMQ event-driven workflows. Optimized performance with Redis caching and CI/CD pipelines, directly contributing to a patient room transfer system.",
+    tags: ["Golang", "Node.js", "gRPC", "RabbitMQ", "Redis", "Docker", "CI/CD", "Healthcare AI"],
+    url: "https://nexmedis.com/",
+    order_index: 1,
+  },
+  {
+    id: "e2",
+    period: "JUN 2022 — JAN 2025",
+    company: "PT Visi Multi Media Aditama",
+    brand: "rSchoolToday · Remote, Contract",
+    role: "Full Stack Engineer",
+    detail: "Built and maintained end-to-end web applications using Symfony/Laravel and Next.js. Migrated legacy architectures to modern stacks, cutting latency by 35% through RabbitMQ event synchronization. Designed REST APIs and managed Docker and AWS (EC2, S3) deployments.",
+    tags: ["Next.js", "Symfony", "Laravel", "RabbitMQ", "AWS (EC2, S3)", "Docker", "REST APIs"],
+    url: "https://rschooltoday.com",
+    order_index: 2,
+  },
+  {
+    id: "e3",
+    period: "APR 2023 — AUG 2025",
+    company: "PT NICE Media Technology",
+    brand: "Product & Engineering · Remote, Full-time",
+    role: "IT Product Manager",
+    detail: "Managed full product lifecycles for education technology platforms. Collaborated closely with backend and frontend engineering teams to define system architecture, technical scope, and aligned product goals with high-availability scalability.",
+    tags: ["Product Lifecycle", "Architecture Strategy", "EdTech", "Team Leadership"],
+    order_index: 3,
+  },
+  {
+    id: "e4",
+    period: "MAY 2021 — APR 2023",
+    company: "PT NICE Media Technology",
+    brand: "Engineering · Remote, Full-time",
+    role: "Senior Full Stack Engineer",
+    detail: "Led development of multiple production systems using Laravel, Livewire, Docker, and relational databases. Designed scalable backend structures, collaborated on frontend features, and mentored junior engineers with code reviews.",
+    tags: ["Laravel", "Livewire", "Docker", "Relational Databases", "Mentoring"],
+    order_index: 4,
+  },
+  {
+    id: "e5",
+    period: "SEP 2019 — MAY 2021",
+    company: "PT NICE Media Technology",
+    brand: "Engineering · Remote, Full-time",
+    role: "Full Stack Engineer",
+    detail: "Developed a comprehensive school payment system using Laravel, handling high-volume billing and financial transaction flows while improving system maintainability through refactoring.",
+    tags: ["Laravel", "School Payment", "Billing Pipelines", "Refactoring"],
+    order_index: 5,
+  },
+  {
+    id: "e6",
+    period: "OCT 2021 — APR 2022",
+    company: "PT IGRA Solusi Kreatif",
+    brand: "Fintech & E-Commerce · Contract",
+    role: "Team Lead Backend Developer",
+    detail: "Led backend engineering for e-commerce and digital wallet platforms. Improved transaction throughput by 40% through backend optimization and database tuning.",
+    tags: ["Team Lead", "E-Commerce", "Digital Wallet", "+40% Throughput", "Database Tuning"],
+    order_index: 6,
+  },
+  {
+    id: "e7",
+    period: "DEC 2021 — APR 2023",
+    company: "PT Atlas Global Teknologi",
+    brand: "Enterprise Solutions · Part-time",
+    role: "Part-Time Full Stack Developer",
+    detail: "Developed SME enterprise applications including a laundry management system, improving operational efficiency and daily tracking by 30%.",
+    tags: ["Full Stack", "SME Operations", "Operational Efficiency", "MySQL"],
+    order_index: 7,
+  },
+  {
+    id: "e8",
+    period: "JAN 2019 — DEC 2020",
+    company: "PT. INOSOFT TRANS SISTEM",
+    brand: "Surabaya · Internship",
+    role: "Software Engineer Intern",
+    detail: "Contributed to developing and maintaining client-facing web and desktop applications utilizing Laravel, CodeIgniter, and .NET.",
+    tags: ["Laravel", "CodeIgniter", ".NET", "Desktop & Web Apps"],
+    order_index: 8,
+  },
+];
+
+export const fallbackEducations: Education[] = [
+  {
+    id: "edu1",
+    institution: "Politeknik Negeri Malang",
+    degree: "Bachelor in Applied Informatics Engineering (D4 Teknik Informatika)",
+    period: "January 2020 — December 2024",
+    detail: "Specialized in software engineering, distributed application architecture, and database systems.",
+    order_index: 1,
+  },
+  {
+    id: "edu2",
+    institution: "SMK PGRI 2 Ponorogo",
+    degree: "High School in Software Engineering (Rekayasa Perangkat Lunak)",
+    period: "January 2017 — December 2020",
+    detail: "Foundation in algorithms, object-oriented programming, and web development fundamentals.",
+    order_index: 2,
+  },
+];
+
+export const fallbackStacks: TechStack[] = [
+  {
+    id: "s1",
+    title: "Backend engineering",
+    icon_name: "ServerCog",
+    note: "High-concurrency logic, robust business rules, and high-performance server-side services.",
+    tags: ["Golang (Gin, Echo)", "PHP (Laravel, Symfony)", "Node.js", "Python", "REST & gRPC APIs"],
+    grid_span: "lg:col-span-3",
+    order_index: 1,
+  },
+  {
+    id: "s2",
+    title: "Frontend systems",
+    icon_name: "Braces",
+    note: "Modern, reactive user interfaces that make complex enterprise products intuitive.",
+    tags: ["Next.js", "React.js", "Vue.js", "Livewire", "Tailwind CSS"],
+    grid_span: "lg:col-span-3",
+    order_index: 2,
+  },
+  {
+    id: "s3",
+    title: "Architecture & systems",
+    icon_name: "Network",
+    note: "Engineered for real-world load, domain clarity, and scalable multi-service workflows.",
+    tags: ["Distributed Systems", "Microservices", "Event-Driven", "DDD", "Multitenant"],
+    grid_span: "lg:col-span-2",
+    order_index: 3,
+  },
+  {
+    id: "s4",
+    title: "Messaging & data",
+    icon_name: "Database",
+    note: "Reliable async pipelines, caching strategies, and normalized data stores.",
+    tags: ["RabbitMQ", "Redis", "PostgreSQL", "MySQL", "MongoDB"],
+    grid_span: "lg:col-span-2",
+    order_index: 4,
+  },
+  {
+    id: "s5",
+    title: "Cloud, DevOps & tools",
+    icon_name: "Workflow",
+    note: "Containerized environments, automated pipelines, and operational developer tools.",
+    tags: ["Docker", "FrankenPHP", "AWS (EC2, S3)", "CI/CD", "Git", "Jira", "n8n"],
+    grid_span: "lg:col-span-2",
+    order_index: 5,
+  },
+];
+
+export const fallbackImpact: ImpactMetric[] = [
+  {
+    id: "m1",
+    metric: "+70%",
+    title: "System performance boost",
+    detail: "Revamped monolithic legacy PHP into Domain-Driven Design (DDD), modern Next.js frontend, and Redis caching.",
+    order_index: 1,
+  },
+  {
+    id: "m2",
+    metric: "-35%",
+    title: "Lower processing latency",
+    detail: "Implemented RabbitMQ-powered event-driven data synchronization at rSchoolToday.",
+    order_index: 2,
+  },
+  {
+    id: "m3",
+    metric: "+40%",
+    title: "Transaction throughput",
+    detail: "Optimized backend queries and relational database tuning for e-commerce and digital wallet systems at PT IGRA.",
+    order_index: 3,
+  },
+  {
+    id: "m4",
+    metric: "+30%",
+    title: "SME operational efficiency",
+    detail: "Delivered enterprise SME management systems (e.g. Laundry Management) to streamline daily workflows.",
+    order_index: 4,
+  },
+];
+
 export const fallbackPortfolioData: PortfolioData = {
   projects: fallbackProjects,
   products: fallbackProducts,
   news: fallbackNews,
+  experiences: fallbackExperiences,
+  educations: fallbackEducations,
+  stacks: fallbackStacks,
+  impact: fallbackImpact,
 };

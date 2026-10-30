@@ -45,8 +45,53 @@ export interface NewsArticle {
   published_at: string;
 }
 
+export interface Experience {
+  id: string;
+  period: string;
+  company: string;
+  brand: string;
+  role: string;
+  detail: string;
+  tags: string[];
+  url?: string;
+  order_index?: number;
+  created_at?: string;
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  period: string;
+  detail: string;
+  order_index?: number;
+  created_at?: string;
+}
+
+export interface TechStack {
+  id: string;
+  title: string;
+  icon_name: string;
+  note: string;
+  tags: string[];
+  grid_span?: string;
+  order_index?: number;
+}
+
+export interface ImpactMetric {
+  id: string;
+  metric: string;
+  title: string;
+  detail: string;
+  order_index?: number;
+}
+
 export interface PortfolioData {
   projects: Project[];
   products: Product[];
   news: NewsArticle[];
+  experiences?: Experience[];
+  educations?: Education[];
+  stacks?: TechStack[];
+  impact?: ImpactMetric[];
 }

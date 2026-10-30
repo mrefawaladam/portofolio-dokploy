@@ -1,17 +1,26 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight, ArrowUpRight, Braces, Boxes, Database, Github, Linkedin,
-  Mail, Menu, Network, RadioTower, ServerCog, Workflow, X, Zap, Layers3,
-  ExternalLink, GraduationCap, MapPin, Phone, Globe, Cpu, CheckCircle2,
-  Newspaper, Calendar, Clock, Tag, Filter, Sparkles, FolderGit2,
-  Download, FileText,
+  Menu, Network, RadioTower, ServerCog, Workflow, X, Zap, Layers3,
+  GraduationCap, MapPin, Phone, Globe, Cpu,
+  Clock, Send, MessageSquare, Shield, Download,
 } from "lucide-react";
-import { Project, Product, NewsArticle, PortfolioData } from "@/types/portfolio";
-import { fallbackPortfolioData } from "@/data/fallback-data";
+import { PortfolioData } from "@/types/portfolio";
+import {
+  fallbackPortfolioData,
+  fallbackProjects,
+  fallbackProducts,
+  fallbackNews,
+  fallbackExperiences,
+  fallbackEducations,
+  fallbackStacks,
+  fallbackImpact,
+} from "@/data/fallback-data";
 import { getPortfolioData } from "@/lib/portfolio";
 import TypewriterRole from "@/components/TypewriterRole";
 
@@ -41,156 +50,27 @@ const navItems = [
 
 const categories = ["All", "Backend", "Architecture", "Full Stack"];
 
-const stacks = [
-  {
-    title: "Backend engineering",
-    icon: ServerCog,
-    note: "High-concurrency logic, robust business rules, and high-performance server-side services.",
-    tags: ["Golang (Gin, Echo)", "PHP (Laravel, Symfony)", "Node.js", "Python", "REST & gRPC APIs"],
-    span: "lg:col-span-3",
-  },
-  {
-    title: "Frontend systems",
-    icon: Braces,
-    note: "Modern, reactive user interfaces that make complex enterprise products intuitive.",
-    tags: ["Next.js", "React.js", "Vue.js", "Livewire", "Tailwind CSS"],
-    span: "lg:col-span-3",
-  },
-  {
-    title: "Architecture & systems",
-    icon: Network,
-    note: "Engineered for real-world load, domain clarity, and scalable multi-service workflows.",
-    tags: ["Distributed Systems", "Microservices", "Event-Driven", "DDD", "Multitenant"],
-    span: "lg:col-span-2",
-  },
-  {
-    title: "Messaging & data",
-    icon: Database,
-    note: "Reliable async pipelines, caching strategies, and normalized data stores.",
-    tags: ["RabbitMQ", "Redis", "PostgreSQL", "MySQL", "MongoDB"],
-    span: "lg:col-span-2",
-  },
-  {
-    title: "Cloud, DevOps & tools",
-    icon: Workflow,
-    note: "Containerized environments, automated pipelines, and operational developer tools.",
-    tags: ["Docker", "FrankenPHP", "AWS (EC2, S3)", "CI/CD", "Git", "Jira", "n8n"],
-    span: "lg:col-span-2",
-  },
-];
-
-const impact = [
-  {
-    metric: "+70%",
-    title: "System performance boost",
-    detail: "Revamped monolithic legacy PHP into Domain-Driven Design (DDD), modern Next.js frontend, and Redis caching.",
-  },
-  {
-    metric: "-35%",
-    title: "Lower processing latency",
-    detail: "Implemented RabbitMQ-powered event-driven data synchronization at rSchoolToday.",
-  },
-  {
-    metric: "+40%",
-    title: "Transaction throughput",
-    detail: "Optimized backend queries and relational database tuning for e-commerce and digital wallet systems at PT IGRA.",
-  },
-  {
-    metric: "+30%",
-    title: "SME operational efficiency",
-    detail: "Delivered enterprise SME management systems (e.g. Laundry Management) to streamline daily workflows.",
-  },
-];
-
-const jobs = [
-  {
-    date: "MAR 2025 — APR 2026",
-    company: "PT Ekosistem Kesehatan Indonesia",
-    brand: "Nexmedis · Full-time",
-    role: "Backend Developer",
-    detail: "Developed backend services for AI-driven healthcare platforms using Golang and Node.js. Designed gRPC-based inter-service communication and RabbitMQ event-driven workflows. Optimized performance with Redis caching and CI/CD pipelines, directly contributing to a patient room transfer system.",
-    tags: ["Golang", "Node.js", "gRPC", "RabbitMQ", "Redis", "Docker", "CI/CD", "Healthcare AI"],
-    url: "https://nexmedis.com/",
-  },
-  {
-    date: "JUN 2022 — JAN 2025",
-    company: "PT Visi Multi Media Aditama",
-    brand: "rSchoolToday · Remote, Contract",
-    role: "Full Stack Engineer",
-    detail: "Built and maintained end-to-end web applications using Symfony/Laravel and Next.js. Migrated legacy architectures to modern stacks, cutting latency by 35% through RabbitMQ event synchronization. Designed REST APIs and managed Docker and AWS (EC2, S3) deployments.",
-    tags: ["Next.js", "Symfony", "Laravel", "RabbitMQ", "AWS (EC2, S3)", "Docker", "REST APIs"],
-    url: "https://rschooltoday.com",
-  },
-  {
-    date: "APR 2023 — AUG 2025",
-    company: "PT NICE Media Technology",
-    brand: "Product & Engineering · Remote, Full-time",
-    role: "IT Product Manager",
-    detail: "Managed full product lifecycles for education technology platforms. Collaborated closely with backend and frontend engineering teams to define system architecture, technical scope, and aligned product goals with high-availability scalability.",
-    tags: ["Product Lifecycle", "Architecture Strategy", "EdTech", "Team Leadership"],
-  },
-  {
-    date: "MAY 2021 — APR 2023",
-    company: "PT NICE Media Technology",
-    brand: "Engineering · Remote, Full-time",
-    role: "Senior Full Stack Engineer",
-    detail: "Led development of multiple production systems using Laravel, Livewire, Docker, and relational databases. Designed scalable backend structures, collaborated on frontend features, and mentored junior engineers with code reviews.",
-    tags: ["Laravel", "Livewire", "Docker", "Relational Databases", "Mentoring"],
-  },
-  {
-    date: "SEP 2019 — MAY 2021",
-    company: "PT NICE Media Technology",
-    brand: "Engineering · Remote, Full-time",
-    role: "Full Stack Engineer",
-    detail: "Developed a comprehensive school payment system using Laravel, handling high-volume billing and financial transaction flows while improving system maintainability through refactoring.",
-    tags: ["Laravel", "School Payment", "Billing Pipelines", "Refactoring"],
-  },
-  {
-    date: "OCT 2021 — APR 2022",
-    company: "PT IGRA Solusi Kreatif",
-    brand: "Fintech & E-Commerce · Contract",
-    role: "Team Lead Backend Developer",
-    detail: "Led backend engineering for e-commerce and digital wallet platforms. Improved transaction throughput by 40% through backend optimization and database tuning.",
-    tags: ["Team Lead", "E-Commerce", "Digital Wallet", "+40% Throughput", "Database Tuning"],
-  },
-  {
-    date: "DEC 2021 — APR 2023",
-    company: "PT Atlas Global Teknologi",
-    brand: "Enterprise Solutions · Part-time",
-    role: "Part-Time Full Stack Developer",
-    detail: "Developed SME enterprise applications including a laundry management system, improving operational efficiency and daily tracking by 30%.",
-    tags: ["Full Stack", "SME Operations", "Operational Efficiency", "MySQL"],
-  },
-  {
-    date: "JAN 2019 — DEC 2020",
-    company: "PT. INOSOFT TRANS SISTEM",
-    brand: "Surabaya · Internship",
-    role: "Software Engineer Intern",
-    detail: "Contributed to developing and maintaining client-facing web and desktop applications utilizing Laravel, CodeIgniter, and .NET.",
-    tags: ["Laravel", "CodeIgniter", ".NET", "Desktop & Web Apps"],
-  },
-];
-
-const educations = [
-  {
-    institution: "Politeknik Negeri Malang",
-    degree: "Bachelor in Applied Informatics Engineering (D4 Teknik Informatika)",
-    period: "January 2020 — December 2024",
-    detail: "Specialized in software engineering, distributed application architecture, and database systems.",
-  },
-  {
-    institution: "SMK PGRI 2 Ponorogo",
-    degree: "High School in Software Engineering (Rekayasa Perangkat Lunak)",
-    period: "January 2017 — December 2020",
-    detail: "Foundation in algorithms, object-oriented programming, and web development fundamentals.",
-  },
-];
+const ICON_MAP: Record<string, any> = {
+  ServerCog,
+  Braces,
+  Network,
+  Database,
+  Workflow,
+  Cpu,
+  Boxes,
+  Layers3,
+};
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(fallbackPortfolioData);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [loading, setLoading] = useState(true);
+
+  // WhatsApp Contact Form State
+  const [clientName, setClientName] = useState("");
+  const [projectService, setProjectService] = useState("Backend Engineering & Architecture");
+  const [clientMessage, setClientMessage] = useState("");
 
   useEffect(() => {
     getPortfolioData().then((data) => {
@@ -199,13 +79,29 @@ export default function Home() {
     });
   }, []);
 
-  const projects = portfolioData.projects || [];
-  const products = portfolioData.products || [];
-  const news = portfolioData.news || [];
+  const projects = portfolioData.projects?.length ? portfolioData.projects : fallbackProjects;
+  const products = portfolioData.products?.length ? portfolioData.products : fallbackProducts;
+  const news = portfolioData.news?.length ? portfolioData.news : fallbackNews;
+  const experiences = portfolioData.experiences?.length ? portfolioData.experiences : fallbackExperiences;
+  const educations = portfolioData.educations?.length ? portfolioData.educations : fallbackEducations;
+  const stacks = portfolioData.stacks?.length ? portfolioData.stacks : fallbackStacks;
+  const impact = portfolioData.impact?.length ? portfolioData.impact : fallbackImpact;
 
   const filteredProjects = selectedCategory === "All"
     ? projects
     : projects.filter((p) => p.category === selectedCategory || p.tags?.some((t) => t.toLowerCase().includes(selectedCategory.toLowerCase())));
+
+  const handleWhatsAppRedirect = (e: React.FormEvent) => {
+    e.preventDefault();
+    const phone = "6283848988030";
+    const sender = clientName.trim() || "Rekan Kolaborasi";
+    const service = projectService;
+    const notes = clientMessage.trim() || "Saya tertarik mendiskusikan peluang proyek / kolaborasi arsitektur.";
+
+    const text = `Halo Refa,\n\nNama: ${sender}\nKebutuhan: ${service}\n\nPesan:\n${notes}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <main className="overflow-hidden bg-[#f4f7fb] text-[#10172a]">
@@ -225,14 +121,25 @@ export default function Home() {
           <nav className="hidden items-center gap-5 rounded-full bg-white/90 px-6 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm md:flex">
             {navItems.map(([label, href]) => <a key={label} href={href} className="transition hover:text-blue-600">{label}</a>)}
           </nav>
-          <button onClick={() => setMenuOpen(!menuOpen)} className="grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/90 text-slate-900 shadow-sm md:hidden" aria-label="Toggle navigation" aria-expanded={menuOpen}>
-            {menuOpen ? <X size={17} /> : <Menu size={17} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur transition hover:bg-white/20"
+            >
+              <Shield size={12} /> Admin
+            </Link>
+            <button onClick={() => setMenuOpen(!menuOpen)} className="grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/90 text-slate-900 shadow-sm md:hidden" aria-label="Toggle navigation" aria-expanded={menuOpen}>
+              {menuOpen ? <X size={17} /> : <Menu size={17} />}
+            </button>
+          </div>
         </header>
 
         {menuOpen && (
           <nav className="absolute right-4 top-[66px] z-50 flex min-w-44 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-xs shadow-xl md:hidden">
             {navItems.map(([label, href]) => <a key={label} href={href} onClick={() => setMenuOpen(false)} className="py-1">{label}</a>)}
+            <Link href="/admin" onClick={() => setMenuOpen(false)} className="py-1 text-blue-600 font-bold flex items-center gap-1 border-t border-slate-100 pt-2">
+              <Shield size={14} /> Admin Portal
+            </Link>
           </nav>
         )}
 
@@ -254,6 +161,15 @@ export default function Home() {
               <a href="#projects" className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3.5 text-[10px] font-bold uppercase tracking-wide text-slate-900 shadow-lg shadow-blue-950/10 transition hover:-translate-y-0.5 hover:bg-cyan-100">
                 View selected work <ArrowUpRight size={15} />
               </a>
+              <a
+                href="/cv-refa.pdf"
+                download="CV_Muhammad_Refa_Walada_Mushtofa.pdf"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm transition hover:bg-white/20"
+              >
+                <Download size={13} /> Download CV
+              </a>
               <a href="#contact" className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm transition hover:bg-white/20">
                 Contact Me
               </a>
@@ -271,36 +187,28 @@ export default function Home() {
           <div className="relative min-h-[420px] overflow-hidden bg-[#fbfdff] md:min-h-0 md:bg-transparent">
             <div className="absolute right-[-18%] top-[9%] h-[290px] w-[290px] rounded-full bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-50 md:hidden" />
             <div className="absolute right-[-9%] top-[12%] h-[320px] w-[320px] rounded-full border border-blue-200 md:hidden" />
-            <div className="absolute right-5 top-7 z-30 flex flex-col items-end text-right sm:right-8 md:right-8 md:top-[16%] lg:right-10 lg:top-[18%]">
-              <p className="eyebrow text-blue-700 font-semibold">Specialization <span className="text-cyan-500">●</span></p>
-              <h2 className="mt-1.5 text-xl font-bold leading-tight tracking-[-.06em] sm:text-2xl text-slate-900">
+            <div className="absolute right-6 top-8 z-30 max-w-[210px] text-right sm:right-8 md:right-10 md:top-[18%] lg:right-12">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                <span>Available for Hire</span>
+              </div>
+              <h2 className="mt-2.5 text-2xl font-bold leading-tight tracking-[-.06em] text-slate-900 sm:text-3xl">
                 Backend &<br />Architecture
               </h2>
-
-              {/* DOWNLOAD CV BUTTON */}
-              <div className="mt-4 flex flex-col items-end gap-1.5">
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Distributed systems &amp; event-driven workflows.
+              </p>
+              <div className="mt-3.5 flex justify-end">
                 <a
                   href="/cv-refa.pdf"
                   download="CV_Muhammad_Refa_Walada_Mushtofa.pdf"
                   target="_blank"
                   rel="noreferrer"
-                  className="group inline-flex items-center gap-2 rounded-full border border-blue-200/90 bg-white/95 px-4 py-2.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-600 hover:text-blue-600 hover:shadow-md"
                 >
-                  <Download size={14} className="text-blue-600 group-hover:text-white transition" />
+                  <Download size={12} className="text-blue-600" />
                   <span>Download CV</span>
                 </a>
-                <span className="text-[9px] font-medium text-slate-400">PDF · Official Resume</span>
-              </div>
-
-              {/* QUICK HIGHLIGHT BADGE */}
-              <div className="mt-3 hidden sm:flex flex-col items-end rounded-xl border border-blue-100 bg-white/85 p-2.5 shadow-xs backdrop-blur-xs max-w-[170px] text-right">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                  <FileText size={12} className="text-blue-600 shrink-0" />
-                  <span>6+ Yrs Experience</span>
-                </div>
-                <p className="mt-0.5 text-[9px] leading-3.5 text-slate-500">
-                  SIMRS, EdTech, Fintech &amp; ERP systems.
-                </p>
               </div>
             </div>
             <div className="absolute bottom-0 left-[-2%] z-10 h-full w-[84%] sm:left-[4%] sm:w-[72%] md:hidden">
@@ -377,9 +285,11 @@ export default function Home() {
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="eyebrow text-slate-400">Project 0{i + 1}</span>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">
+                      {item.category || "Full Stack"}
+                    </span>
                     {item.metrics && (
-                      <span className="rounded-full bg-cyan-50 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-800 border border-cyan-200/60">
+                      <span className="rounded-full bg-cyan-50 px-2.5 py-0.5 text-[10px] font-semibold text-cyan-700">
                         {item.metrics}
                       </span>
                     )}
@@ -388,18 +298,18 @@ export default function Home() {
                   <h3 className="mt-4 text-xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
                     {item.title}
                   </h3>
-
                   {item.tagline && (
-                    <p className="mt-1 text-xs font-medium text-blue-600">{item.tagline}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      {item.tagline}
+                    </p>
                   )}
-
-                  <p className="mt-3 text-xs leading-5 text-slate-600">
+                  <p className="mt-3 text-xs leading-6 text-slate-600">
                     {item.description}
                   </p>
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-slate-100">
-                  <div className="flex flex-wrap gap-1.5 mb-5">
+                  <div className="mb-4 flex flex-wrap gap-1.5">
                     {item.tags?.map((tag) => (
                       <span key={tag} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
                         {tag}
@@ -567,12 +477,35 @@ export default function Home() {
         </motion.div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
           {stacks.map((item, i) => {
-            const Icon = item.icon;
-            return <motion.article key={item.title} initial="hidden" whileInView="show" viewport={{ once: true, amount: .12 }} variants={reveal} transition={{ delay: i * .04 }} className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-blue-300 ${item.span}`}>
-              <div className="flex items-start justify-between"><div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700"><Icon size={19} /></div><span className="eyebrow text-slate-400">0{i + 1}</span></div>
-              <h3 className="mt-6 text-lg font-bold tracking-tight">{item.title}</h3><p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">{item.note}</p>
-              <div className="mt-4 flex flex-wrap gap-2">{item.tags.map(tag => <span key={tag} className="rounded-full border border-slate-200 px-3 py-1.5 text-[10px] text-slate-600">{tag}</span>)}</div>
-            </motion.article>;
+            const IconComponent = (item.icon_name && ICON_MAP[item.icon_name]) ? ICON_MAP[item.icon_name] : ServerCog;
+            const spanClass = item.grid_span || "lg:col-span-2";
+            return (
+              <motion.article
+                key={item.id || item.title}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, amount: 0.12 }}
+                variants={reveal}
+                transition={{ delay: i * 0.04 }}
+                className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-blue-300 ${spanClass}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700">
+                    <IconComponent size={19} />
+                  </div>
+                  <span className="eyebrow text-slate-400">0{i + 1}</span>
+                </div>
+                <h3 className="mt-6 text-lg font-bold tracking-tight">{item.title}</h3>
+                <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">{item.note}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {item.tags?.map((tag) => (
+                    <span key={tag} className="rounded-full border border-slate-200 px-3 py-1.5 text-[10px] text-slate-600">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </motion.article>
+            );
           })}
         </div>
       </section>
@@ -582,16 +515,28 @@ export default function Home() {
         <div className="container-shell">
           <div className="mb-10"><p className="eyebrow text-cyan-200">05 / Measurable outcomes</p><h2 className="section-title mt-4">Build with intent.<br /><span className="text-white/45">Measure the difference.</span></h2></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {impact.map((item, i) => <motion.article key={item.title} initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} transition={{ delay: i * .05 }} className="rounded-2xl border border-white/15 bg-white/[.06] p-7 backdrop-blur-sm">
-              <div className="flex justify-between"><span className="eyebrow text-white/45">Impact 0{i + 1}</span><ArrowUpRight size={16} className="text-cyan-300" /></div>
-              <p className="mt-9 text-5xl font-black tracking-[-.08em] text-cyan-300">{item.metric}</p><h3 className="mt-4 text-base font-bold">{item.title}</h3><p className="mt-3 text-xs leading-6 text-white/55">{item.detail}</p>
-            </motion.article>)}
+            {impact.map((item, i) => (
+              <motion.article
+                key={item.id || item.title}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={reveal}
+                transition={{ delay: i * 0.05 }}
+                className="rounded-2xl border border-white/15 bg-white/[.06] p-7 backdrop-blur-sm"
+              >
+                <div className="flex justify-between"><span className="eyebrow text-white/45">Impact 0{i + 1}</span><ArrowUpRight size={16} className="text-cyan-300" /></div>
+                <p className="mt-9 text-5xl font-black tracking-[-.08em] text-cyan-300">{item.metric}</p>
+                <h3 className="mt-4 text-base font-bold">{item.title}</h3>
+                <p className="mt-3 text-xs leading-6 text-white/55">{item.detail}</p>
+              </motion.article>
+            ))}
           </div>
           <p className="mt-6 max-w-2xl text-[10px] leading-5 text-white/35">Metrics validated through production benchmarks across enterprise hospital AI, school management, and fintech applications.</p>
         </div>
       </section>
 
-      {/* SECTION 06: EXPERIENCE (2-ROW HEADER & 2-COLUMN GRID) */}
+      {/* SECTION 06: EXPERIENCE */}
       <section id="experience" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-14">
           <div>
@@ -607,7 +552,7 @@ export default function Home() {
               6+ years delivering backend architectures, distributed event pipelines, and robust product engineering across healthcare, education, fintech, and SME platforms.
             </p>
             <a
-              href="mailto:refa.main@gmail.com"
+              href="#contact"
               className="inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-900 transition shrink-0"
             >
               Discuss a project <ArrowRight size={15} />
@@ -616,9 +561,9 @@ export default function Home() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {jobs.map((job, i) => (
+          {experiences.map((job, i) => (
             <motion.article
-              key={`${job.company}-${job.role}-${job.date}`}
+              key={job.id || `${job.company}-${job.role}-${job.period}`}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, amount: 0.1 }}
@@ -627,7 +572,7 @@ export default function Home() {
               className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
             >
               <div>
-                <p className="eyebrow text-blue-700 font-semibold">{job.date}</p>
+                <p className="eyebrow text-blue-700 font-semibold">{job.period}</p>
                 <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900">
                   {job.role}
                 </h3>
@@ -640,7 +585,7 @@ export default function Home() {
               </div>
 
               <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-1.5">
-                {job.tags.map((tag) => (
+                {job.tags?.map((tag) => (
                   <span
                     key={tag}
                     className="rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-600"
@@ -669,7 +614,7 @@ export default function Home() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {educations.map((edu, i) => (
             <motion.div
-              key={edu.institution}
+              key={edu.id || edu.institution}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
@@ -739,76 +684,139 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER & CONTACT */}
+      {/* SECTION 09: CONTACT FORM & FOOTER */}
       <footer id="contact" className="bg-[#0b1020] text-white">
-        <div className="container-shell grid gap-10 py-16 md:grid-cols-[1.2fr_.8fr] md:py-24">
-          <div>
-            <p className="eyebrow text-cyan-300">09 / Have a good problem?</p>
-            <h2 className="mt-6 text-5xl font-black leading-[.9] tracking-[-.08em] md:text-7xl">
-              Let&apos;s build<br />
-              <span className="bg-gradient-to-r from-blue-300 via-sky-200 to-cyan-300 bg-clip-text text-transparent">
-                something solid.
-              </span>
-            </h2>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <a
-                href="mailto:refa.main@gmail.com"
-                className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3.5 text-xs font-bold text-slate-900 shadow-md transition hover:bg-cyan-100"
-              >
-                refa.main@gmail.com <ArrowUpRight size={15} />
-              </a>
-              <a
-                href="https://wa.me/6283848988030"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3.5 text-xs font-bold text-white transition hover:border-cyan-300"
-              >
-                <Phone size={14} /> WhatsApp ↗
-              </a>
-            </div>
-          </div>
-
-          <div className="grid content-start gap-7 sm:grid-cols-2 md:grid-cols-1">
+        <div className="container-shell py-16 md:py-24">
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr]">
+            {/* Left: Contact Header & WhatsApp Form */}
             <div>
-              <p className="eyebrow mb-3 text-white/45">Direct Contact</p>
-              <a className="block break-all text-sm text-white/80 hover:text-cyan-300 transition" href="mailto:refa.main@gmail.com">
-                refa.main@gmail.com
-              </a>
-              <a className="mt-2 block text-sm text-white/80 hover:text-cyan-300 transition" href="tel:+6283848988030">
-                +62 838-4898-8030
-              </a>
-              <p className="mt-2 text-sm text-white/45 flex items-center gap-1.5">
-                <MapPin size={13} /> Ponorogo, Jawa Timur, ID
+              <p className="eyebrow text-cyan-300">09 / Have a project or inquiry?</p>
+              <h2 className="mt-4 text-4xl font-black leading-[.95] tracking-[-.08em] sm:text-5xl md:text-6xl">
+                Let&apos;s build<br />
+                <span className="bg-gradient-to-r from-blue-300 via-sky-200 to-cyan-300 bg-clip-text text-transparent">
+                  something solid.
+                </span>
+              </h2>
+              <p className="mt-4 max-w-md text-sm leading-6 text-white/60">
+                Hubungi langsung melalui formulir WhatsApp interaktif di bawah ini untuk mendiskusikan arsitektur sistem, backend engineering, atau kolaborasi proyek.
               </p>
+
+              {/* INTERACTIVE WHATSAPP CONTACT FORM */}
+              <form onSubmit={handleWhatsAppRedirect} className="mt-8 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-md sm:p-8">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                      Nama Anda / Organisasi
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Budi Santoso"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                      Kebutuhan / Layanan
+                    </label>
+                    <select
+                      value={projectService}
+                      onChange={(e) => setProjectService(e.target.value)}
+                      className="w-full rounded-xl border border-white/15 bg-[#141b30] px-4 py-2.5 text-xs text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                    >
+                      <option value="Backend Engineering & Architecture">Backend Engineering & Architecture</option>
+                      <option value="Distributed Systems & RabbitMQ">Distributed Systems & RabbitMQ</option>
+                      <option value="Full Stack Web & Next.js">Full Stack Web & Next.js</option>
+                      <option value="Database Tuning & Performance">Database Tuning & Performance</option>
+                      <option value="General Consultation / Other">General Consultation / Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                    Pesan / Ringkasan Kebutuhan
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Ceritakan gambaran singkat kebutuhan atau sistem yang ingin dibangun..."
+                    value={clientMessage}
+                    onChange={(e) => setClientMessage(e.target.value)}
+                    className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:brightness-110 active:scale-[0.99]"
+                >
+                  <Phone size={15} /> Chat via WhatsApp Langsung ↗
+                </button>
+              </form>
             </div>
 
-            <div>
-              <p className="eyebrow mb-3 text-white/45">Find me online</p>
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href="https://github.com/mrefawaladam"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2.5 text-xs text-white/80 hover:border-cyan-300 transition"
-                >
-                  <Github size={14} /> GitHub ↗
-                </a>
-                <a
-                  href="https://www.linkedin.com/in/mrefawaladam"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2.5 text-xs text-white/80 hover:border-cyan-300 transition"
-                >
-                  <Linkedin size={14} /> LinkedIn ↗
-                </a>
-                <a
-                  href="https://mrefawm.my.id"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2.5 text-xs text-white/80 hover:border-cyan-300 transition"
-                >
-                  <Globe size={14} /> mrefawm.my.id ↗
-                </a>
+            {/* Right: Direct Contacts & Channels */}
+            <div className="flex flex-col justify-between space-y-10 lg:pl-8">
+              <div className="space-y-6">
+                <div>
+                  <p className="eyebrow mb-2 text-white/45">Direct Inquiries</p>
+                  <a className="block text-base font-semibold text-white/90 hover:text-cyan-300 transition" href="mailto:refa.main@gmail.com">
+                    refa.main@gmail.com
+                  </a>
+                  <a className="mt-1 block text-sm text-white/80 hover:text-cyan-300 transition" href="tel:+6283848988030">
+                    +62 838-4898-8030
+                  </a>
+                  <p className="mt-2 text-xs text-white/45 flex items-center gap-1.5">
+                    <MapPin size={13} /> Ponorogo, Jawa Timur, Indonesia
+                  </p>
+                </div>
+
+                <div>
+                  <p className="eyebrow mb-3 text-white/45">Find me online</p>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href="https://github.com/mrefawaladam"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs text-white/80 hover:border-cyan-300 transition"
+                    >
+                      <Github size={14} /> GitHub ↗
+                    </a>
+                    <a
+                      href="https://www.linkedin.com/in/mrefawaladam"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs text-white/80 hover:border-cyan-300 transition"
+                    >
+                      <Linkedin size={14} /> LinkedIn ↗
+                    </a>
+                    <a
+                      href="https://mrefawm.my.id"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs text-white/80 hover:border-cyan-300 transition"
+                    >
+                      <Globe size={14} /> mrefawm.my.id ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-white">Database &amp; Content Management</p>
+                    <p className="text-[11px] text-white/50 mt-0.5">Kelola konten portfolio secara dinamis di Dokploy PostgreSQL.</p>
+                  </div>
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-500 transition shrink-0"
+                  >
+                    <Shield size={13} /> Admin Portal ↗
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -817,8 +825,11 @@ export default function Home() {
         <div className="border-t border-white/10">
           <div className="container-shell flex flex-col justify-between gap-3 py-5 text-[9px] uppercase tracking-[.13em] text-white/35 sm:flex-row">
             <span>© {new Date().getFullYear()} Muhammad Refa Walada Mushtofa</span>
-            <span>Full Stack Engineer · Backend & System Design</span>
-            <a href="#top" className="hover:text-cyan-300 transition">Back to top ↑</a>
+            <span>Full Stack Engineer · Backend &amp; System Design</span>
+            <div className="flex items-center gap-4">
+              <Link href="/admin" className="hover:text-cyan-300 transition">Admin Portal</Link>
+              <a href="#top" className="hover:text-cyan-300 transition">Back to top ↑</a>
+            </div>
           </div>
         </div>
       </footer>

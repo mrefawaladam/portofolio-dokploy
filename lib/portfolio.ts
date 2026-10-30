@@ -12,6 +12,10 @@ export async function getPortfolioData(): Promise<PortfolioData> {
       projects: data.projects || fallbackPortfolioData.projects,
       products: data.products || fallbackPortfolioData.products,
       news: data.news || fallbackPortfolioData.news,
+      experiences: data.experiences || fallbackPortfolioData.experiences,
+      educations: data.educations || fallbackPortfolioData.educations,
+      stacks: data.stacks || fallbackPortfolioData.stacks,
+      impact: data.impact || fallbackPortfolioData.impact,
     };
   } catch (err) {
     return fallbackPortfolioData;
