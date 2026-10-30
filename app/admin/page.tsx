@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   FolderGit2, Boxes, Newspaper, Briefcase, GraduationCap,
   Layers, TrendingUp, Plus, Edit2, Trash2, KeyRound, LogOut,
@@ -313,14 +314,17 @@ export default function AdminPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0b1020] px-4">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl text-white shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-white shadow-lg">
-              <KeyRound size={22} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">Portfolio Admin</h1>
-              <p className="text-xs text-white/50">Enter secret passcode to manage database</p>
-            </div>
+          <div className="flex flex-col items-center text-center mb-6">
+            <Image
+              src="/logo-light.png"
+              alt="mrefawm"
+              width={160}
+              height={53}
+              priority
+              className="h-10 w-auto object-contain mb-3"
+            />
+            <h1 className="text-lg font-bold tracking-tight text-white">Portfolio Admin Portal</h1>
+            <p className="text-xs text-white/50 mt-0.5">Dokploy PostgreSQL Content Management System</p>
           </div>
 
           {error && (
@@ -365,9 +369,15 @@ export default function AdminPage() {
       {/* Top Navigation */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-6 backdrop-blur">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 text-slate-900 font-bold hover:text-blue-600 transition">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-600 text-white font-black text-sm">R</span>
-            <span className="font-serif text-lg tracking-tight">Refa Portfolio <span className="text-blue-600 text-xs px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200">Admin</span></span>
+          <Link href="/" className="flex items-center gap-3 transition hover:opacity-85">
+            <Image
+              src="/logo-dark.png"
+              alt="mrefawm"
+              width={120}
+              height={40}
+              className="h-7 w-auto object-contain"
+            />
+            <span className="text-blue-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200">Admin</span>
           </Link>
           <span className="hidden sm:inline text-xs text-slate-400">|</span>
           <Link href="/" target="_blank" className="hidden sm:inline-flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition">

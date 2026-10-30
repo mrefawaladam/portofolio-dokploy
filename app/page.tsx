@@ -114,9 +114,15 @@ export default function Home() {
         <div className="pointer-events-none absolute right-[2%] top-[17%] hidden h-[410px] w-[410px] rounded-full bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-50 md:block" />
 
         <header className="relative z-40 flex h-[76px] items-center justify-between px-5 md:px-10 lg:px-14">
-          <a href="#top" className="flex items-center gap-2 text-white">
-            <span className="text-2xl font-black tracking-[-.12em]">↗</span>
-            <span className="font-serif text-xl tracking-tight">Refamaan<span className="text-cyan-200">.</span></span>
+          <a href="#top" className="flex items-center transition hover:opacity-90">
+            <Image
+              src="/logo-light.png"
+              alt="Muhammad Refa Walada Mushtofa (mrefawm)"
+              width={140}
+              height={46}
+              priority
+              className="h-8 md:h-9 w-auto object-contain"
+            />
           </a>
           <nav className="hidden items-center gap-5 rounded-full bg-white/90 px-6 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm md:flex">
             {navItems.map(([label, href]) => <a key={label} href={href} className="transition hover:text-blue-600">{label}</a>)}
@@ -823,8 +829,17 @@ export default function Home() {
         </div>
 
         <div className="border-t border-white/10">
-          <div className="container-shell flex flex-col justify-between gap-3 py-5 text-[9px] uppercase tracking-[.13em] text-white/35 sm:flex-row">
-            <span>© {new Date().getFullYear()} Muhammad Refa Walada Mushtofa</span>
+          <div className="container-shell flex flex-col items-center justify-between gap-4 py-6 text-[10px] uppercase tracking-[.13em] text-white/40 sm:flex-row">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo-light.png"
+                alt="mrefawm logo"
+                width={100}
+                height={33}
+                className="h-6 w-auto opacity-80 hover:opacity-100 transition"
+              />
+              <span>© {new Date().getFullYear()} Muhammad Refa Walada Mushtofa</span>
+            </div>
             <span>Full Stack Engineer · Backend &amp; System Design</span>
             <div className="flex items-center gap-4">
               <Link href="/admin" className="hover:text-cyan-300 transition">Admin Portal</Link>

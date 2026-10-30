@@ -101,9 +101,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/refa-foto.png",
+    icon: [
+      { url: "/faf-icon.png", type: "image/png" },
+    ],
+    shortcut: "/faf-icon.png",
+    apple: "/faf-icon.png",
   },
   category: "technology",
 };
