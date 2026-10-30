@@ -12,6 +12,15 @@ import {
 import { Project, Product, NewsArticle, PortfolioData } from "@/types/portfolio";
 import { fallbackPortfolioData } from "@/data/fallback-data";
 import { getPortfolioData } from "@/lib/portfolio";
+import TypewriterRole from "@/components/TypewriterRole";
+
+const heroRoles = [
+  "Backend Programmer & Full Stack Engineer",
+  "Distributed Systems & Microservices",
+  "Event-Driven Architecture (RabbitMQ)",
+  "Domain-Driven Design (DDD) Specialist",
+  "Golang · PHP · Node.js · Next.js",
+];
 
 const reveal = {
   hidden: { opacity: 0, y: 20 },
@@ -234,9 +243,9 @@ export default function Home() {
             <h1 className="max-w-full text-[clamp(4.3rem,10.2vw,9.4rem)] font-black uppercase leading-[.79] tracking-[-.095em]">
               Refa<span className="text-cyan-200">.</span>
             </h1>
-            <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-cyan-200 sm:text-sm">
-              Backend Programmer &amp; Full Stack Engineer
-            </p>
+            <div className="mt-2 text-xs font-bold uppercase tracking-widest text-cyan-200 sm:text-sm min-h-[1.75rem] flex items-center">
+              <TypewriterRole words={heroRoles} />
+            </div>
             <p className="mt-6 max-w-[360px] text-sm leading-6 text-blue-50">
               Specializing in backend development, distributed systems, and event-driven architecture for complex enterprise applications.
             </p>
