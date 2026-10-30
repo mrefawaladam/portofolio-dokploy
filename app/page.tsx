@@ -8,6 +8,7 @@ import {
   Mail, Menu, Network, RadioTower, ServerCog, Workflow, X, Zap, Layers3,
   ExternalLink, GraduationCap, MapPin, Phone, Globe, Cpu, CheckCircle2,
   Newspaper, Calendar, Clock, Tag, Filter, Sparkles, FolderGit2,
+  Download, FileText,
 } from "lucide-react";
 import { Project, Product, NewsArticle, PortfolioData } from "@/types/portfolio";
 import { fallbackPortfolioData } from "@/data/fallback-data";
@@ -270,9 +271,37 @@ export default function Home() {
           <div className="relative min-h-[420px] overflow-hidden bg-[#fbfdff] md:min-h-0 md:bg-transparent">
             <div className="absolute right-[-18%] top-[9%] h-[290px] w-[290px] rounded-full bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-50 md:hidden" />
             <div className="absolute right-[-9%] top-[12%] h-[320px] w-[320px] rounded-full border border-blue-200 md:hidden" />
-            <div className="absolute right-5 top-8 z-30 max-w-[155px] text-right sm:right-8 sm:max-w-[170px] md:right-8 md:top-[25%]">
-              <p className="eyebrow text-blue-700">Specialization <span className="text-cyan-500">●</span></p>
-              <h2 className="mt-2 text-xl font-semibold leading-tight tracking-[-.06em] sm:text-2xl">Backend &<br />Architecture</h2>
+            <div className="absolute right-5 top-7 z-30 flex flex-col items-end text-right sm:right-8 md:right-8 md:top-[16%] lg:right-10 lg:top-[18%]">
+              <p className="eyebrow text-blue-700 font-semibold">Specialization <span className="text-cyan-500">●</span></p>
+              <h2 className="mt-1.5 text-xl font-bold leading-tight tracking-[-.06em] sm:text-2xl text-slate-900">
+                Backend &<br />Architecture
+              </h2>
+
+              {/* DOWNLOAD CV BUTTON */}
+              <div className="mt-4 flex flex-col items-end gap-1.5">
+                <a
+                  href="/cv-refa.pdf"
+                  download="CV_Muhammad_Refa_Walada_Mushtofa.pdf"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group inline-flex items-center gap-2 rounded-full border border-blue-200/90 bg-white/95 px-4 py-2.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md"
+                >
+                  <Download size={14} className="text-blue-600 group-hover:text-white transition" />
+                  <span>Download CV</span>
+                </a>
+                <span className="text-[9px] font-medium text-slate-400">PDF · Official Resume</span>
+              </div>
+
+              {/* QUICK HIGHLIGHT BADGE */}
+              <div className="mt-3 hidden sm:flex flex-col items-end rounded-xl border border-blue-100 bg-white/85 p-2.5 shadow-xs backdrop-blur-xs max-w-[170px] text-right">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
+                  <FileText size={12} className="text-blue-600 shrink-0" />
+                  <span>6+ Yrs Experience</span>
+                </div>
+                <p className="mt-0.5 text-[9px] leading-3.5 text-slate-500">
+                  SIMRS, EdTech, Fintech &amp; ERP systems.
+                </p>
+              </div>
             </div>
             <div className="absolute bottom-0 left-[-2%] z-10 h-full w-[84%] sm:left-[4%] sm:w-[72%] md:hidden">
               <Image src="/refa-foto.png" alt="Muhammad Refa Walada Mushtofa" fill priority sizes="(max-width: 768px) 84vw, 0px" className="object-contain object-bottom" />
