@@ -17,9 +17,11 @@ import {
   Edit3,
   Columns,
   UploadCloud,
+  Sparkles,
 } from "lucide-react";
 import MarkdownViewer from "./MarkdownViewer";
 import FileUploadZone, { UploadedFile } from "./FileUploadZone";
+import { cleanChatGptMarkdown } from "@/lib/chatgpt-formatter";
 
 interface MarkdownEditorProps {
   value: string;
@@ -48,6 +50,7 @@ export default function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("write");
   const [showUploadZone, setShowUploadZone] = useState<boolean>(true);
+  const [formattedAlert, setFormattedAlert] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Helper to insert or wrap markdown at cursor position
@@ -254,6 +257,31 @@ export default function MarkdownEditor({
           >
             <TableIcon size={14} />
           </button>
+
+          {/* ChatGPT Quick Formatter */}
+          <div className="ml-auto flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                const cleaned = cleanChatGptMarkdown(value);
+                onChange(cleaned);
+                setFormattedAlert(true);
+                setTimeout(() => setFormattedAlert(false), 2500);
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition border ${
+                formattedAlert
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                  : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+              }`}
+              title="Otomatis rapikan format teks dari ChatGPT (gambar berdampingan, kuis, dan formula)"
+            >
+              <Sparkles
+                size={13}
+                className={formattedAlert ? "text-emerald-600 animate-pulse" : "text-indigo-600"}
+              />
+              {formattedAlert ? "✨ Berhasil Diformat!" : "✨ Rapikan ChatGPT"}
+            </button>
+          </div>
         </div>
       )}
 

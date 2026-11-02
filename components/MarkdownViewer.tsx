@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy } from "lucide-react";
+import { cleanChatGptMarkdown } from "@/lib/chatgpt-formatter";
 
 interface MarkdownViewerProps {
   content: string;
@@ -60,6 +61,8 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
       </div>
     );
   }
+
+  const processedContent = cleanChatGptMarkdown(content);
 
   return (
     <div className={`prose-container text-slate-700 leading-relaxed ${className}`}>
@@ -239,7 +242,7 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
           },
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );
