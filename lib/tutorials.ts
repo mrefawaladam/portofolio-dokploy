@@ -140,7 +140,7 @@ export async function getAllCourses(): Promise<Course[]> {
   if (pool) {
     try {
       const coursesRes = await pool.query(
-        "SELECT * FROM public.tutorial_courses WHERE published = true ORDER BY order_index ASC, created_at DESC"
+        "SELECT * FROM public.tutorial_courses WHERE (published IS TRUE OR published IS NULL) ORDER BY order_index ASC, created_at DESC"
       );
 
       if (coursesRes.rows.length > 0) {
@@ -152,7 +152,7 @@ export async function getAllCourses(): Promise<Course[]> {
             [courseIds]
           ),
           pool.query(
-            "SELECT * FROM public.tutorial_lessons WHERE course_id = ANY($1::uuid[]) AND published = true ORDER BY order_index ASC",
+            "SELECT * FROM public.tutorial_lessons WHERE course_id = ANY($1::uuid[]) AND (published IS TRUE OR published IS NULL) ORDER BY order_index ASC",
             [courseIds]
           ),
         ]);
@@ -187,6 +187,31 @@ export async function getAllCourses(): Promise<Course[]> {
               title: mRow.title,
               order: mRow.order_index,
               lessons: lessonMetas,
+            });
+          }
+
+          // Also capture any lessons that do not belong to a module (or module_id is null)
+          const unassignedLessons = cLessons.filter(
+            (l) => !l.module_id || !cModules.some((m) => m.id === l.module_id)
+          );
+          if (unassignedLessons.length > 0) {
+            const unassignedMetas: LessonMeta[] = unassignedLessons.map((lRow) => ({
+              slug: lRow.slug,
+              title: lRow.title,
+              moduleTitle: "General Modules",
+              moduleSlug: "general",
+              order: lRow.order_index,
+              duration: lRow.duration || "10 min read",
+              type: (lRow.type as LessonType) || "reading",
+              excerpt: lRow.excerpt || "",
+              tags: lRow.tags || [],
+            }));
+            allLessonMetas.push(...unassignedMetas);
+            builtModules.push({
+              id: "general",
+              title: "General Modules",
+              order: 999,
+              lessons: unassignedMetas,
             });
           }
 
@@ -244,11 +269,11 @@ export async function getLesson(
   if (pool) {
     try {
       const lessonRes = await pool.query(
-        `SELECT l.*, m.title as module_title, m.slug as module_slug 
+        `SELECT l.*, COALESCE(m.title, 'General Modules') as module_title, COALESCE(m.slug, 'general') as module_slug 
          FROM public.tutorial_lessons l
          JOIN public.tutorial_courses c ON l.course_id = c.id
-         JOIN public.tutorial_modules m ON l.module_id = m.id
-         WHERE c.slug = $1 AND l.slug = $2 AND l.published = true
+         LEFT JOIN public.tutorial_modules m ON l.module_id = m.id
+         WHERE c.slug = $1 AND l.slug = $2 AND (l.published IS TRUE OR l.published IS NULL)
          LIMIT 1`,
         [courseSlug, lessonSlug]
       );

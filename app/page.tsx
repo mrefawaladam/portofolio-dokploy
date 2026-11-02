@@ -43,7 +43,7 @@ const reveal = {
 const navItems = [
   ["Projects", "/#projects"],
   ["Products", "/#products"],
-  ["Tutorials", "/#tutorials"],
+  ["Tutorials", "/tutorials"],
   ["Prompts", "/prompts"],
   ["News", "/news"],
   ["Toolkit", "/#expertise"],
@@ -89,6 +89,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [loading, setLoading] = useState(true);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [tutorialCourses, setTutorialCourses] = useState<any[]>([]);
 
   // WhatsApp Contact Form State
   const [clientName, setClientName] = useState("");
@@ -100,6 +101,15 @@ export default function Home() {
       setPortfolioData(data);
       setLoading(false);
     });
+
+    fetch("/api/tutorials")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
+          setTutorialCourses(data.courses);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const projects = portfolioData.projects?.length ? portfolioData.projects : fallbackProjects;
@@ -498,130 +508,168 @@ export default function Home() {
         </motion.div>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          {/* Card 1: Event-Driven RabbitMQ & Golang */}
-          <motion.article
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.1 }}
-            variants={reveal}
-            className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
-                  Distributed Systems
-                </span>
-                <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                  Flagship Track
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
-                Mastering Event-Driven Architecture with RabbitMQ &amp; Golang
-              </h3>
-              <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600">
-                Pelajari cara mengubah backend monolitik yang lambat menjadi sistem terdistribusi decoupled berkecepatan tinggi menggunakan RabbitMQ dan Golang, lengkap dengan penanganan idempotency, Dead Letter Queues, dan monitoring performa.
-              </p>
-
-              {/* Module Previews */}
-              <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Curriculum Outline · 3 Modules · 6 Lessons
-                </p>
-                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
-                  <span className="font-medium truncate">01. Foundations of Distributed Systems</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
-                  <span className="font-medium truncate">02. Core Architecture &amp; Message Patterns</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
-                  <span className="font-medium truncate">03. Golang Production Implementation</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                <Clock size={13} className="text-slate-400" />
-                <span>~1h 10m read</span>
-                <span>•</span>
-                <span className="text-emerald-600 font-semibold">100% Free (.MD)</span>
-              </div>
-              <Link
-                href="/tutorials/event-driven-rabbitmq"
-                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 hover:gap-3"
+          {tutorialCourses.length > 0 ? (
+            tutorialCourses.slice(0, 2).map((course, idx) => (
+              <motion.article
+                key={course.slug || idx}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, amount: 0.1 }}
+                variants={reveal}
+                transition={{ delay: idx * 0.1 }}
+                className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
               >
-                <span>Start Learning</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          </motion.article>
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
+                      {course.category || "Tutorial"}
+                    </span>
+                    <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                      {course.badge || course.level || "Track"}
+                    </span>
+                  </div>
 
-          {/* Card 2: Clean Architecture & DDD */}
-          <motion.article
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.1 }}
-            variants={reveal}
-            transition={{ delay: 0.1 }}
-            className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <span className="rounded-full bg-purple-50 px-3 py-1 text-[11px] font-bold text-purple-700">
-                  Software Engineering
-                </span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                  Next Track
-                </span>
-              </div>
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
+                    {course.title}
+                  </h3>
+                  <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600 line-clamp-3">
+                    {course.description || course.tagline}
+                  </p>
 
-              <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
-                Clean Architecture &amp; Domain-Driven Design (DDD) in Full-Stack Apps
-              </h3>
-              <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600">
-                Pemisahan domain logic dari framework database, boundary aggregates, repository pattern, dan implementasi hexagonal architecture pada Golang dan Next.js enterprise.
-              </p>
-
-              {/* Module Previews */}
-              <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Curriculum Outline · 3 Modules · 5 Lessons
-                </p>
-                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
-                  <span className="font-medium truncate">01. Strategic &amp; Tactical DDD Patterns</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
+                  {/* Module Previews */}
+                  {course.modules && course.modules.length > 0 && (
+                    <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        Curriculum Outline · {course.modules.length} Modules · {course.totalLessons || 0} Lessons
+                      </p>
+                      {course.modules.slice(0, 3).map((mod: any, mIdx: number) => (
+                        <div
+                          key={mod.id || mIdx}
+                          className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100"
+                        >
+                          <span className="font-medium truncate">
+                            0{mIdx + 1}. {mod.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 shrink-0">
+                            {mod.lessons?.length || 0} lessons
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
-                  <span className="font-medium truncate">02. Entities, Value Objects &amp; Aggregates</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
-                  <span className="font-medium truncate">03. Repository &amp; Unit of Work in Go</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">1 lesson</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                <BookOpen size={13} className="text-slate-400" />
-                <span>Interactive Hub</span>
-                <span>•</span>
-                <span>Markdown-Powered</span>
-              </div>
-              <Link
-                href="/tutorials"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-blue-700"
+                <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                    <Clock size={13} className="text-slate-400" />
+                    <span>{course.totalDuration || "~1h read"}</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 font-semibold">100% Free (.MD)</span>
+                  </div>
+                  <Link
+                    href={
+                      course.firstLessonSlug
+                        ? `/tutorials/${course.slug}/${course.firstLessonSlug}`
+                        : `/tutorials/${course.slug}`
+                    }
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 hover:gap-3"
+                  >
+                    <span>Start Learning</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </motion.article>
+            ))
+          ) : (
+            <>
+              {/* Card 1: Event-Driven RabbitMQ & Golang */}
+              <motion.article
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, amount: 0.1 }}
+                variants={reveal}
+                className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
               >
-                <span>Browse Tracks</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          </motion.article>
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
+                      Distributed Systems
+                    </span>
+                    <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                      Flagship Track
+                    </span>
+                  </div>
+
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
+                    Mastering Event-Driven Architecture with RabbitMQ &amp; Golang
+                  </h3>
+                  <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600">
+                    Pelajari cara mengubah backend monolitik yang lambat menjadi sistem terdistribusi decoupled berkecepatan tinggi menggunakan RabbitMQ dan Golang.
+                  </p>
+                </div>
+
+                <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                    <Clock size={13} className="text-slate-400" />
+                    <span>~1h 5m read</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 font-semibold">100% Free (.MD)</span>
+                  </div>
+                  <Link
+                    href="/tutorials/event-driven-rabbitmq/intro-event-driven"
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 hover:gap-3"
+                  >
+                    <span>Start Learning</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </motion.article>
+
+              {/* Card 2: Catalog link */}
+              <motion.article
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, amount: 0.1 }}
+                variants={reveal}
+                transition={{ delay: 0.1 }}
+                className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <span className="rounded-full bg-purple-50 px-3 py-1 text-[11px] font-bold text-purple-700">
+                      Engineering Hub
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                      Catalog
+                    </span>
+                  </div>
+
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
+                    Browse All Learning Tracks &amp; Tutorials
+                  </h3>
+                  <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600">
+                    Koleksi lengkap panduan teknis berstandar produksi, mulai dari Prompt Engineering, Arsitektur Sistem, hingga Microservices.
+                  </p>
+                </div>
+
+                <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                    <BookOpen size={13} className="text-slate-400" />
+                    <span>Interactive Hub</span>
+                    <span>•</span>
+                    <span>Markdown-Powered</span>
+                  </div>
+                  <Link
+                    href="/tutorials"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-blue-700"
+                  >
+                    <span>Browse Tracks</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </motion.article>
+            </>
+          )}
         </div>
       </section>
 
