@@ -87,7 +87,7 @@ const TABS: TabConfig[] = [
     label: "Kurikulum Kursus",
     singular: "Track Kursus",
     icon: BookOpen,
-    description: "Kurikulum kursus komprehensif (Coursera-style) dengan struktur Bab dan Pelajaran",
+    description: "Katalog kursus Coursera-style. Klik judul kursus untuk mengelola Bab & Pelajaran",
     fields: [
       {
         name: "title",
@@ -868,6 +868,87 @@ const TABS: TabConfig[] = [
   },
 ];
 
+// Reusable Pagination Component
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalItems <= pageSize) return null;
+
+  const startIdx = (currentPage - 1) * pageSize + 1;
+  const endIdx = Math.min(currentPage * pageSize, totalItems);
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 bg-slate-50/90 border-t border-slate-200 text-xs">
+      <div className="text-slate-500 font-medium">
+        Menampilkan <span className="font-bold text-slate-800">{startIdx}</span> -{" "}
+        <span className="font-bold text-slate-800">{endIdx}</span> dari{" "}
+        <span className="font-bold text-slate-800">{totalItems}</span> data
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition shadow-2xs"
+        >
+          ← Sebelumnya
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+          if (
+            totalPages > 7 &&
+            p !== 1 &&
+            p !== totalPages &&
+            Math.abs(p - currentPage) > 1
+          ) {
+            if (p === 2 || p === totalPages - 1) {
+              return (
+                <span key={p} className="px-1 text-slate-400">
+                  ...
+                </span>
+              );
+            }
+            return null;
+          }
+
+          const isActive = p === currentPage;
+          return (
+            <button
+              key={p}
+              onClick={() => onPageChange(p)}
+              className={`grid h-8 w-8 place-items-center rounded-xl font-bold transition text-xs ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              {p}
+            </button>
+          );
+        })}
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition shadow-2xs"
+        >
+          Selanjutnya →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -880,8 +961,13 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isOpenMobile, setIsOpenMobile] = useState<boolean>(false);
 
-  // Curriculum Hub View Mode: "tree" (hierarkis per bab) vs "table" (tabel)
-  const [curriculumViewMode, setCurriculumViewMode] = useState<"tree" | "table">("tree");
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const ITEMS_PER_PAGE = 8;
+  const COURSES_PER_PAGE = 6;
+
+  // Selected Course for Detail Drill-down View ("judul diklik detail baru tampil sub bab")
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
 
   // Cached relational data for courses, modules, and lessons
@@ -912,6 +998,17 @@ export default function AdminPage() {
       fetchTutorialRelations();
     }
   }, [isAuthenticated, activeTab]);
+
+  // Reset pagination and drill-down when activeTab changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedCourseId(null);
+  }, [activeTab]);
+
+  // Reset pagination when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1048,6 +1145,12 @@ export default function AdminPage() {
     });
   }, [allCourses, allModules, allLessons]);
 
+  // Get currently selected course for drill-down view
+  const activeSelectedCourse = useMemo(() => {
+    if (!selectedCourseId) return null;
+    return courseTree.find((c) => c.id === selectedCourseId) || null;
+  }, [courseTree, selectedCourseId]);
+
   // Has markdown field?
   const hasMarkdownField = useMemo(() => {
     return modalEntityConfig.fields.some((f) => f.type === "markdown");
@@ -1079,9 +1182,7 @@ export default function AdminPage() {
       }
     });
 
-    // Merge explicitly provided default values (e.g. course_id, module_id)
     Object.assign(initial, defaultValues);
-
     setFormData(initial);
     setIsModalOpen(true);
   };
@@ -1132,6 +1233,12 @@ export default function AdminPage() {
       }
       setSuccessMsg(`Berhasil menghapus ${config.singular}!`);
       setTimeout(() => setSuccessMsg(null), 3500);
+
+      // If deleted course was the selected one, reset view
+      if (entity === "courses" && selectedCourseId === id) {
+        setSelectedCourseId(null);
+      }
+
       fetchItems();
       fetchTutorialRelations();
     } catch (err: any) {
@@ -1241,6 +1348,32 @@ export default function AdminPage() {
     });
   }, [items, searchQuery, courseMap, moduleMap]);
 
+  // Paginated items for standard tables
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE) || 1;
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage, ITEMS_PER_PAGE]);
+
+  // Paginated course cards for courses list view
+  const filteredCourses = useMemo(() => {
+    if (!searchQuery.trim()) return courseTree;
+    const q = searchQuery.toLowerCase().trim();
+    return courseTree.filter((c) => {
+      const match = [c.title, c.slug, c.tagline, c.category, c.level, c.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return match.includes(q);
+    });
+  }, [courseTree, searchQuery]);
+
+  const totalCoursePages = Math.ceil(filteredCourses.length / COURSES_PER_PAGE) || 1;
+  const paginatedCourses = useMemo(() => {
+    const start = (currentPage - 1) * COURSES_PER_PAGE;
+    return filteredCourses.slice(start, start + COURSES_PER_PAGE);
+  }, [filteredCourses, currentPage, COURSES_PER_PAGE]);
+
   // Auth Gate
   if (!isAuthenticated) {
     return (
@@ -1309,6 +1442,7 @@ export default function AdminPage() {
         onSelectTab={(tab) => {
           setActiveTab(tab);
           setSearchQuery("");
+          setSelectedCourseId(null);
         }}
         counts={entityCounts}
         onLogout={handleLogout}
@@ -1333,10 +1467,25 @@ export default function AdminPage() {
             <div className="flex items-center gap-2 text-xs">
               <span className="font-semibold text-slate-400 hidden sm:inline">Admin Portal</span>
               <span className="text-slate-300 hidden sm:inline">/</span>
-              <span className="font-bold text-slate-900 flex items-center gap-1.5">
+              <button
+                onClick={() => setSelectedCourseId(null)}
+                className={`font-bold flex items-center gap-1.5 transition ${
+                  selectedCourseId
+                    ? "text-blue-600 hover:underline"
+                    : "text-slate-900"
+                }`}
+              >
                 <currentTabConfig.icon size={15} className="text-blue-600" />
                 {currentTabConfig.label}
-              </span>
+              </button>
+              {activeSelectedCourse && (
+                <>
+                  <span className="text-slate-300">/</span>
+                  <span className="font-bold text-slate-900 truncate max-w-xs sm:max-w-md">
+                    {activeSelectedCourse.title}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -1395,18 +1544,20 @@ export default function AdminPage() {
                 <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white font-bold">
                   <Info size={16} />
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Struktur Hierarki Tutorial (Coursera Track Architecture)
-                    </h3>
-                    <span className="rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5">
-                      Panduan Konsep
-                    </span>
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-900">
+                        Panduan Konsep: Kursus ➔ Modul Bab ➔ Pelajaran / Lessons
+                      </h3>
+                      <span className="rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5">
+                        Coursera Architecture
+                      </span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div className="rounded-xl border border-blue-100 bg-white/80 p-3 shadow-2xs">
+                    <div className="rounded-xl border border-blue-100 bg-white/85 p-3 shadow-2xs">
                       <div className="flex items-center gap-1.5 font-bold text-blue-900 text-xs">
                         <BookOpen size={14} className="text-blue-600" />
                         1. Track Kursus
@@ -1416,23 +1567,23 @@ export default function AdminPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-indigo-100 bg-white/80 p-3 shadow-2xs">
+                    <div className="rounded-xl border border-indigo-100 bg-white/85 p-3 shadow-2xs">
                       <div className="flex items-center gap-1.5 font-bold text-indigo-900 text-xs">
                         <FolderGit2 size={14} className="text-indigo-600" />
                         2. Modul Bab (Chapters)
                       </div>
                       <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                        <strong>Bab Pengelompok Materi.</strong> Berfungsi membagi kurikulum kursus ke dalam bab terstruktur (Bab 1: Konsep Dasar, Bab 2: Desain Pola, dst).
+                        <strong>Bab Pengelompok Topik.</strong> Berfungsi membagi materi kursus ke dalam bab terstruktur (Bab 1: Dasar, Bab 2: Desain Pola, dst).
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-emerald-100 bg-white/80 p-3 shadow-2xs">
+                    <div className="rounded-xl border border-emerald-100 bg-white/85 p-3 shadow-2xs">
                       <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-xs">
                         <Bookmark size={14} className="text-emerald-600" />
                         3. Pelajaran / Lessons
                       </div>
                       <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                        <strong>Isi Materi Sebenarnya!</strong> Inilah artikel bacaan & latihan koding Markdown yang dibaca pengunjung website di setiap bab, lengkap dengan durasi baca.
+                        <strong>Isi Materi Sebenarnya!</strong> Artikel bacaan & latihan koding Markdown yang dibaca pengunjung website di setiap bab, lengkap dengan durasi baca.
                       </p>
                     </div>
                   </div>
@@ -1441,425 +1592,390 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Header Banner & Live Search & View Switcher */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-                  {currentTabConfig.label}
-                </h1>
-                <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60 font-mono">
-                  {items.length} item
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">{currentTabConfig.description}</p>
-            </div>
+          {/* 1. VIEW A: DETAIL DRILL-DOWN VIEW (Tampil saat judul kursus diklik) */}
+          {activeTab === "courses" && activeSelectedCourse ? (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              {/* Back button and quick actions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <button
+                  onClick={() => setSelectedCourseId(null)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition shadow-2xs self-start"
+                >
+                  <ArrowLeft size={14} /> Kembali ke Daftar Semua Kursus
+                </button>
 
-            <div className="flex items-center gap-3">
-              {/* View Switcher for Courses (Tree vs Table) */}
-              {activeTab === "courses" && (
-                <div className="flex items-center rounded-xl bg-slate-100 p-1 text-xs font-bold border border-slate-200/80">
-                  <button
-                    onClick={() => setCurriculumViewMode("tree")}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
-                      curriculumViewMode === "tree"
-                        ? "bg-white text-blue-600 shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    href={`/tutorials/${activeSelectedCourse.slug}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
                   >
-                    <ListTree size={14} /> Hierarki (Bab per Kursus)
-                  </button>
+                    <span>Lihat Live Web</span> <ExternalLink size={12} />
+                  </Link>
                   <button
-                    onClick={() => setCurriculumViewMode("table")}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
-                      curriculumViewMode === "table"
-                        ? "bg-white text-blue-600 shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
+                    onClick={() => {
+                      openCreateModalForEntity("modules", {
+                        course_id: activeSelectedCourse.id,
+                        order_index: activeSelectedCourse.modules.length + 1,
+                      });
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 transition"
                   >
-                    <TableIcon size={14} /> Tabel Kursus
+                    <Plus size={14} /> Tambah Bab Baru ke Kursus Ini
                   </button>
                 </div>
-              )}
+              </div>
 
-              {/* Quick Search Bar */}
-              <div className="relative w-full sm:w-64">
-                <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  placeholder={`Cari di ${currentTabConfig.label.toLowerCase()}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
+              {/* Course Detail Card */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
+                {/* Course Header Banner */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-slate-100">
+                  <div className="flex items-start gap-3.5">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20">
+                      <BookOpen size={24} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                          {activeSelectedCourse.title}
+                        </h2>
+                        {activeSelectedCourse.badge && (
+                          <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                            {activeSelectedCourse.badge}
+                          </span>
+                        )}
+                        {activeSelectedCourse.level && (
+                          <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                            {activeSelectedCourse.level}
+                          </span>
+                        )}
+                        {activeSelectedCourse.published ? (
+                          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                            🟢 Live di Web
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                            ⚪ Draft
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                        {activeSelectedCourse.tagline || activeSelectedCourse.description}
+                      </p>
+                      <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-400 font-medium">
+                        <span className="flex items-center gap-1 text-slate-700 font-semibold">
+                          <FolderGit2 size={13} className="text-blue-600" />
+                          {activeSelectedCourse.modules.length} Bab Modul
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 text-slate-700 font-semibold">
+                          <Bookmark size={13} className="text-emerald-600" />
+                          {activeSelectedCourse.totalLessons} Materi Pelajaran
+                        </span>
+                        <span>•</span>
+                        <span className="font-mono text-slate-400">
+                          /tutorials/{activeSelectedCourse.slug}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => openEditModalForEntity("courses", activeSelectedCourse)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+                      title="Edit Detail Kursus"
+                    >
+                      <Edit2 size={13} /> Edit Kursus
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDeleteEntity(
+                          "courses",
+                          activeSelectedCourse.id,
+                          activeSelectedCourse.title
+                        )
+                      }
+                      className="rounded-xl border border-slate-200 p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                      title="Hapus Kursus"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub Bab & Lessons Hierarchy */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span>Daftar Bab & Materi Pelajaran di Kursus Ini</span>
+                    <span>{activeSelectedCourse.modules.length} Bab Terdaftar</span>
+                  </div>
+
+                  {activeSelectedCourse.modules.length === 0 ? (
+                    <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
+                      <p className="text-xs text-slate-600 font-medium">
+                        Belum ada Bab Modul di kursus ini.
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Klik tombol &quot;Tambah Bab Baru ke Kursus Ini&quot; untuk membuat bab kurikulum pertama.
+                      </p>
+                      <button
+                        onClick={() => {
+                          openCreateModalForEntity("modules", {
+                            course_id: activeSelectedCourse.id,
+                            order_index: 1,
+                          });
+                        }}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-xs"
+                      >
+                        <Plus size={13} /> Tambah Bab Pertama
+                      </button>
+                    </div>
+                  ) : (
+                    activeSelectedCourse.modules.map((mod: any, modIdx: number) => {
+                      const isCollapsed = Boolean(collapsedModules[mod.id]);
+
+                      return (
+                        <div
+                          key={mod.id}
+                          className="rounded-2xl border border-slate-200/90 bg-slate-50/60 overflow-hidden shadow-2xs"
+                        >
+                          {/* Bab Header */}
+                          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-100/80 border-b border-slate-200/80">
+                            <div
+                              onClick={() => toggleModuleCollapse(mod.id)}
+                              className="flex items-center gap-2.5 cursor-pointer select-none min-w-0"
+                            >
+                              <button
+                                type="button"
+                                className="text-slate-400 hover:text-slate-700"
+                              >
+                                {isCollapsed ? (
+                                  <ChevronRight size={15} />
+                                ) : (
+                                  <ChevronDown size={15} />
+                                )}
+                              </button>
+                              <span className="grid h-6 w-6 place-items-center rounded-lg bg-blue-600 text-white font-mono text-[10px] font-bold shrink-0">
+                                {mod.order_index || modIdx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                  Bab {mod.order_index || modIdx + 1}: {mod.title}
+                                </span>
+                                <span className="ml-2 font-mono text-[10px] text-slate-400 hidden sm:inline">
+                                  /{mod.slug}
+                                </span>
+                              </div>
+                              <span className="rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shrink-0">
+                                {mod.lessons.length} Pelajaran
+                              </span>
+                            </div>
+
+                            {/* Bab Action Buttons */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => {
+                                  openCreateModalForEntity("lessons", {
+                                    course_id: activeSelectedCourse.id,
+                                    module_id: mod.id,
+                                    order_index: mod.lessons.length + 1,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-indigo-700 transition"
+                              >
+                                <Plus size={11} /> Tambah Pelajaran
+                              </button>
+                              <button
+                                onClick={() => openEditModalForEntity("modules", mod)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+                                title="Edit Bab"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleDeleteEntity("modules", mod.id, mod.title)
+                                }
+                                className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-100 hover:text-rose-600 transition"
+                                title="Hapus Bab"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Lessons list in this Bab */}
+                          {!isCollapsed && (
+                            <div className="p-3 sm:p-4 space-y-2">
+                              {mod.lessons.length === 0 ? (
+                                <div className="py-4 text-center text-xs text-slate-400 italic bg-white/70 rounded-xl border border-dashed border-slate-200">
+                                  Belum ada materi pelajaran di bab ini. Klik tombol{" "}
+                                  <span className="font-semibold text-indigo-600">
+                                    &quot;+ Tambah Pelajaran&quot;
+                                  </span>{" "}
+                                  di atas untuk menulis artikel materi Markdown.
+                                </div>
+                              ) : (
+                                mod.lessons.map((lesson: any) => (
+                                  <div
+                                    key={lesson.id}
+                                    className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-200/70 shadow-2xs hover:border-blue-300 hover:shadow-xs transition"
+                                  >
+                                    <div className="flex items-start gap-3 min-w-0">
+                                      <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-50 border border-slate-200/80 text-sm shrink-0 mt-0.5">
+                                        {lesson.type === "code"
+                                          ? "💻"
+                                          : lesson.type === "architecture"
+                                          ? "🏗️"
+                                          : "📖"}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                            {lesson.title}
+                                          </span>
+                                          <span
+                                            className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
+                                              lesson.published
+                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                                            }`}
+                                          >
+                                            {lesson.published ? "Live" : "Draft"}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                          <span className="font-medium text-slate-500">
+                                            {lesson.duration || "10 min read"}
+                                          </span>
+                                          <span>•</span>
+                                          <span className="capitalize font-medium text-slate-500">
+                                            Tipe: {lesson.type || "reading"}
+                                          </span>
+                                          <span>•</span>
+                                          <span className="font-mono text-slate-400">
+                                            /{lesson.slug}
+                                          </span>
+                                        </div>
+                                        {lesson.excerpt && (
+                                          <p className="text-[11px] text-slate-500 line-clamp-1 mt-1 max-w-xl">
+                                            {lesson.excerpt}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Lesson Action Buttons */}
+                                    <div className="flex items-center gap-1 shrink-0 ml-3">
+                                      <Link
+                                        href={`/tutorials/${activeSelectedCourse.slug}/${lesson.slug}`}
+                                        target="_blank"
+                                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                                        title="Lihat di Web Live"
+                                      >
+                                        <ExternalLink size={13} />
+                                      </Link>
+                                      <button
+                                        onClick={() =>
+                                          openEditModalForEntity("lessons", lesson)
+                                        }
+                                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition"
+                                        title="Edit Materi & Markdown"
+                                      >
+                                        <Edit2 size={12} />
+                                        <span className="hidden sm:inline">Edit Markdown</span>
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteEntity(
+                                            "lessons",
+                                            lesson.id,
+                                            lesson.title
+                                          )
+                                        }
+                                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                        title="Hapus Pelajaran"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ) : activeTab === "courses" ? (
+            /* 2. VIEW B: COURSES CATALOG VIEW (Tampilan Bersih Awal, Judul Diklik untuk Lihat Detail) */
+            <div className="space-y-4">
+              {/* Header Search & Stats Banner */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                      {currentTabConfig.label}
+                    </h1>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60 font-mono">
+                      {filteredCourses.length} kursus
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Klik pada judul kursus atau tombol &quot;Detail & Kurikulum&quot; untuk membuka daftar Bab dan Pelajaran.
+                  </p>
+                </div>
 
-          {/* 1. KHUSUS TAB COURSES DENGAN TREE VIEW: TAMPILKAN BAB PER KURSUS */}
-          {activeTab === "courses" && curriculumViewMode === "tree" ? (
-            <div className="space-y-6">
+                <div className="relative w-full sm:w-72">
+                  <Search
+                    size={14}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Cari kursus..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Courses Grid / Cards */}
               {loading ? (
                 <div className="p-16 text-center space-y-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
                   <p className="text-xs font-semibold text-slate-500">
-                    Memuat kurikulum lengkap kursus...
+                    Memuat daftar kursus...
                   </p>
                 </div>
-              ) : courseTree.length === 0 ? (
+              ) : filteredCourses.length === 0 ? (
                 <div className="p-16 text-center rounded-2xl bg-white border border-slate-200 shadow-xs">
                   <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
                     <BookOpen size={24} />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-800">Belum ada Kursus</h3>
-                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                    Klik tombol &quot;Tambah Track Kursus&quot; untuk membuat silabus kursus baru.
-                  </p>
-                  <button
-                    onClick={() => openCreateModalForEntity("courses")}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
-                  >
-                    <Plus size={14} /> Buat Kursus Pertama
-                  </button>
-                </div>
-              ) : (
-                courseTree.map((course) => (
-                  <div
-                    key={course.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5"
-                  >
-                    {/* Course Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-slate-100">
-                      <div className="flex items-start gap-3.5">
-                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20">
-                          <BookOpen size={24} />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                              {course.title}
-                            </h2>
-                            {course.badge && (
-                              <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                                {course.badge}
-                              </span>
-                            )}
-                            {course.level && (
-                              <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
-                                {course.level}
-                              </span>
-                            )}
-                            {course.published ? (
-                              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                                🟢 Live di Web
-                              </span>
-                            ) : (
-                              <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
-                                ⚪ Draft
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-                            {course.tagline || course.description}
-                          </p>
-                          <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-400 font-medium">
-                            <span className="flex items-center gap-1 text-slate-600 font-semibold">
-                              <FolderGit2 size={13} className="text-blue-600" />
-                              {course.modules.length} Bab Modul
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1 text-slate-600 font-semibold">
-                              <Bookmark size={13} className="text-emerald-600" />
-                              {course.totalLessons} Materi Pelajaran
-                            </span>
-                            <span>•</span>
-                            <span className="font-mono text-slate-400">/tutorials/{course.slug}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Course Action Buttons */}
-                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-                        <Link
-                          href={`/tutorials/${course.slug}`}
-                          target="_blank"
-                          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
-                        >
-                          <span>Live</span> <ExternalLink size={11} />
-                        </Link>
-                        <button
-                          onClick={() => {
-                            openCreateModalForEntity("modules", {
-                              course_id: course.id,
-                              order_index: course.modules.length + 1,
-                            });
-                          }}
-                          className="inline-flex items-center gap-1 rounded-xl bg-blue-50 border border-blue-200/80 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition shadow-2xs"
-                        >
-                          <Plus size={13} /> Tambah Bab
-                        </button>
-                        <button
-                          onClick={() => openEditModalForEntity("courses", course)}
-                          className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 transition"
-                          title="Edit Kursus"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEntity("courses", course.id, course.title)}
-                          className="rounded-xl border border-slate-200 p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
-                          title="Hapus Kursus"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* DAFTAR BAB MODUL (BAB DITAMPILKAN DI TIAP KURSUS) */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        <span>Daftar Bab & Materi Pelajaran</span>
-                        <span>{course.modules.length} Bab Terdaftar</span>
-                      </div>
-
-                      {course.modules.length === 0 ? (
-                        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
-                          <p className="text-xs text-slate-600 font-medium">
-                            Belum ada Bab Modul di kursus ini.
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            Setiap kursus membutuhkan bab untuk mengelompokkan materi pelajaran.
-                          </p>
-                          <button
-                            onClick={() => {
-                              openCreateModalForEntity("modules", {
-                                course_id: course.id,
-                                order_index: 1,
-                              });
-                            }}
-                            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-xs"
-                          >
-                            <Plus size={13} /> Tambah Bab Pertama ke Kursus Ini
-                          </button>
-                        </div>
-                      ) : (
-                        course.modules.map((mod: any, modIdx: number) => {
-                          const isCollapsed = Boolean(collapsedModules[mod.id]);
-
-                          return (
-                            <div
-                              key={mod.id}
-                              className="rounded-2xl border border-slate-200/90 bg-slate-50/60 overflow-hidden transition"
-                            >
-                              {/* Bab Header */}
-                              <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-100/70 border-b border-slate-200/80">
-                                <div
-                                  onClick={() => toggleModuleCollapse(mod.id)}
-                                  className="flex items-center gap-2.5 cursor-pointer select-none min-w-0"
-                                >
-                                  <button
-                                    type="button"
-                                    className="text-slate-400 hover:text-slate-700"
-                                  >
-                                    {isCollapsed ? (
-                                      <ChevronRight size={15} />
-                                    ) : (
-                                      <ChevronDown size={15} />
-                                    )}
-                                  </button>
-                                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-blue-600 text-white font-mono text-[10px] font-bold shrink-0">
-                                    {mod.order_index || modIdx + 1}
-                                  </span>
-                                  <div className="min-w-0">
-                                    <span className="font-bold text-slate-900 text-xs sm:text-sm">
-                                      Bab {mod.order_index || modIdx + 1}: {mod.title}
-                                    </span>
-                                    <span className="ml-2 font-mono text-[10px] text-slate-400 hidden sm:inline">
-                                      /{mod.slug}
-                                    </span>
-                                  </div>
-                                  <span className="rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shrink-0">
-                                    {mod.lessons.length} Pelajaran
-                                  </span>
-                                </div>
-
-                                {/* Bab Action Buttons */}
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <button
-                                    onClick={() => {
-                                      openCreateModalForEntity("lessons", {
-                                        course_id: course.id,
-                                        module_id: mod.id,
-                                        order_index: mod.lessons.length + 1,
-                                      });
-                                    }}
-                                    className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-indigo-700 transition"
-                                  >
-                                    <Plus size={11} /> Tambah Pelajaran
-                                  </button>
-                                  <button
-                                    onClick={() => openEditModalForEntity("modules", mod)}
-                                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
-                                    title="Edit Bab"
-                                  >
-                                    <Edit2 size={13} />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteEntity("modules", mod.id, mod.title)
-                                    }
-                                    className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-100 hover:text-rose-600 transition"
-                                    title="Hapus Bab"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Lessons list in this Bab */}
-                              {!isCollapsed && (
-                                <div className="p-3 sm:p-4 space-y-2">
-                                  {mod.lessons.length === 0 ? (
-                                    <div className="py-4 text-center text-xs text-slate-400 italic bg-white/70 rounded-xl border border-dashed border-slate-200">
-                                      Belum ada materi pelajaran di bab ini. Klik tombol{" "}
-                                      <span className="font-semibold text-indigo-600">
-                                        &quot;+ Tambah Pelajaran&quot;
-                                      </span>{" "}
-                                      di atas untuk menulis materi Markdown.
-                                    </div>
-                                  ) : (
-                                    mod.lessons.map((lesson: any) => (
-                                      <div
-                                        key={lesson.id}
-                                        className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-200/70 shadow-2xs hover:border-blue-300 hover:shadow-xs transition"
-                                      >
-                                        <div className="flex items-start gap-3 min-w-0">
-                                          <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-50 border border-slate-200/80 text-sm shrink-0 mt-0.5">
-                                            {lesson.type === "code"
-                                              ? "💻"
-                                              : lesson.type === "architecture"
-                                              ? "🏗️"
-                                              : "📖"}
-                                          </div>
-                                          <div className="min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="font-bold text-slate-900 text-xs sm:text-sm">
-                                                {lesson.title}
-                                              </span>
-                                              <span
-                                                className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
-                                                  lesson.published
-                                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                                                }`}
-                                              >
-                                                {lesson.published ? "Live" : "Draft"}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-                                              <span className="font-medium text-slate-500">
-                                                {lesson.duration || "10 min read"}
-                                              </span>
-                                              <span>•</span>
-                                              <span className="capitalize font-medium text-slate-500">
-                                                Tipe: {lesson.type || "reading"}
-                                              </span>
-                                              <span>•</span>
-                                              <span className="font-mono text-slate-400">
-                                                /{lesson.slug}
-                                              </span>
-                                            </div>
-                                            {lesson.excerpt && (
-                                              <p className="text-[11px] text-slate-500 line-clamp-1 mt-1 max-w-xl">
-                                                {lesson.excerpt}
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        {/* Lesson Action Buttons */}
-                                        <div className="flex items-center gap-1 shrink-0 ml-3">
-                                          <Link
-                                            href={`/tutorials/${course.slug}/${lesson.slug}`}
-                                            target="_blank"
-                                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
-                                            title="Lihat di Web Live"
-                                          >
-                                            <ExternalLink size={13} />
-                                          </Link>
-                                          <button
-                                            onClick={() =>
-                                              openEditModalForEntity("lessons", lesson)
-                                            }
-                                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition"
-                                            title="Edit Materi & Markdown"
-                                          >
-                                            <Edit2 size={12} />
-                                            <span className="hidden sm:inline">Edit Markdown</span>
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleDeleteEntity(
-                                                "lessons",
-                                                lesson.id,
-                                                lesson.title
-                                              )
-                                            }
-                                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                                            title="Hapus Pelajaran"
-                                          >
-                                            <Trash2 size={13} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          ) : (
-            /* 2. STANDARD TABLE VIEW (UNTUK SEMUA ENTITAS LAIN ATAU VIEW MODE TABLE) */
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              {loading ? (
-                <div className="p-16 text-center space-y-3">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
-                  <p className="text-xs font-semibold text-slate-500">
-                    Memuat data {currentTabConfig.label}...
-                  </p>
-                </div>
-              ) : filteredItems.length === 0 ? (
-                <div className="p-16 text-center">
-                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
-                    <currentTabConfig.icon size={22} />
-                  </div>
                   <h3 className="text-sm font-bold text-slate-800">
                     {searchQuery
-                      ? `Tidak ada hasil untuk "${searchQuery}"`
-                      : `Belum ada ${currentTabConfig.singular}`}
+                      ? `Tidak ada kursus untuk "${searchQuery}"`
+                      : "Belum ada Track Kursus"}
                   </h3>
                   <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                     {searchQuery
-                      ? "Coba gunakan kata kunci pencarian yang lain atau bersihkan kotak pencarian."
-                      : `Klik tombol "Tambah ${currentTabConfig.singular}" di kanan atas untuk membuat rekaman data baru.`}
+                      ? "Gunakan kata kunci pencarian yang lain."
+                      : "Klik tombol Tambah Track Kursus di kanan atas untuk membuat kursus pertama."}
                   </p>
                   {searchQuery ? (
                     <button
@@ -1870,211 +1986,412 @@ export default function AdminPage() {
                     </button>
                   ) : (
                     <button
-                      onClick={openCreateModal}
+                      onClick={() => openCreateModalForEntity("courses")}
                       className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
                     >
-                      <Plus size={14} /> Tambah {currentTabConfig.singular} Pertama
+                      <Plus size={14} /> Tambah Track Kursus Pertama
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      <tr>
-                        <th className="px-6 py-4">Judul / Entitas Utama</th>
-                        <th className="px-6 py-4">Kategori & Relasi</th>
-                        <th className="px-6 py-4">Tags & Atribut</th>
-                        <th className="px-6 py-4 text-center">Urutan</th>
-                        <th className="px-6 py-4 text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredItems.map((item) => {
-                        const primaryTitle =
-                          item.title ||
-                          item.name ||
-                          item.role ||
-                          item.institution ||
-                          item.metric ||
-                          "Tanpa Judul";
-                        const subtitle =
-                          item.tagline ||
-                          item.headline ||
-                          item.description ||
-                          item.company ||
-                          item.degree ||
-                          item.note ||
-                          item.excerpt ||
-                          "";
-                        const tags = item.tags || (item.category ? [item.category] : []);
+                <div className="space-y-3.5">
+                  {paginatedCourses.map((course) => (
+                    <div
+                      key={course.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs hover:border-blue-300 hover:shadow-md transition-all group"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                          <div
+                            onClick={() => setSelectedCourseId(course.id)}
+                            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20 cursor-pointer group-hover:scale-105 transition"
+                            title="Klik untuk membuka detail & bab"
+                          >
+                            <BookOpen size={24} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2
+                                onClick={() => setSelectedCourseId(course.id)}
+                                className="text-base sm:text-lg font-black text-slate-900 leading-snug cursor-pointer hover:text-blue-600 transition"
+                              >
+                                {course.title}
+                              </h2>
+                              {course.badge && (
+                                <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                  {course.badge}
+                                </span>
+                              )}
+                              {course.level && (
+                                <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                                  {course.level}
+                                </span>
+                              )}
+                              {course.published ? (
+                                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                  🟢 Live di Web
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                                  ⚪ Draft
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2 max-w-2xl leading-relaxed">
+                              {course.tagline || course.description}
+                            </p>
+                            <div className="flex items-center gap-3 pt-2 text-[11px] text-slate-400 font-medium">
+                              <span className="flex items-center gap-1 text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
+                                <FolderGit2 size={12} className="text-blue-600" />
+                                {course.modules.length} Bab Modul
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
+                                <Bookmark size={12} className="text-emerald-600" />
+                                {course.totalLessons} Materi Pelajaran
+                              </span>
+                              <span>•</span>
+                              <span className="font-mono text-slate-400">
+                                /tutorials/{course.slug}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-                        // Friendly relation info
-                        const relatedCourseTitle = item.course_id
-                          ? courseMap.get(item.course_id)
-                          : null;
-                        const relatedModuleTitle = item.module_id
-                          ? moduleMap.get(item.module_id)
-                          : null;
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          <Link
+                            href={`/tutorials/${course.slug}`}
+                            target="_blank"
+                            className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition shadow-2xs"
+                            title="Lihat Halaman Publik di Web"
+                          >
+                            <ExternalLink size={15} />
+                          </Link>
+                          <button
+                            onClick={() => openEditModalForEntity("courses", course)}
+                            className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition shadow-2xs"
+                            title="Edit Detail Kursus"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteEntity("courses", course.id, course.title)
+                            }
+                            className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition shadow-2xs"
+                            title="Hapus Kursus"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                          <button
+                            onClick={() => setSelectedCourseId(course.id)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 transition"
+                          >
+                            <span>Detail & Kurikulum</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
 
-                        return (
-                          <tr key={item.id} className="hover:bg-slate-50/80 transition group">
-                            {/* Col 1: Primary Title + Image/Slug */}
-                            <td className="px-6 py-4">
-                              <div className="flex items-start gap-3">
-                                {(item.cover_image || item.image_url) && (
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img
-                                    src={item.cover_image || item.image_url}
-                                    alt={primaryTitle}
-                                    className="h-11 w-14 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs mt-0.5"
-                                  />
-                                )}
-                                <div className="min-w-0">
-                                  <div className="font-bold text-slate-900 text-sm leading-snug line-clamp-1">
-                                    {primaryTitle}
-                                  </div>
-                                  {subtitle && (
-                                    <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-md">
-                                      {subtitle}
-                                    </div>
-                                  )}
-                                  {item.slug && (
-                                    <div className="flex items-center gap-1.5 mt-1">
-                                      <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                                        /{item.slug}
-                                      </span>
-                                      {activeTab === "courses" && (
-                                        <Link
-                                          href={`/tutorials/${item.slug}`}
-                                          target="_blank"
-                                          className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
-                                        >
-                                          Live <ExternalLink size={9} />
-                                        </Link>
-                                      )}
-                                      {activeTab === "lessons" && item.course_id && (
-                                        <Link
-                                          href={`/tutorials/${courseMap.get(item.course_id) || item.course_id}/${item.slug}`}
-                                          target="_blank"
-                                          className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
-                                        >
-                                          Live <ExternalLink size={9} />
-                                        </Link>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Col 2: Relasi & Kategori */}
-                            <td className="px-6 py-4">
-                              <div className="space-y-1 max-w-xs">
-                                {relatedCourseTitle && (
-                                  <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-lg">
-                                    <BookOpen size={10} className="shrink-0 text-blue-600" />
-                                    <span className="truncate">{relatedCourseTitle}</span>
-                                  </div>
-                                )}
-                                {relatedModuleTitle && (
-                                  <div className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg ml-0.5">
-                                    <FolderGit2 size={10} className="shrink-0 text-slate-500" />
-                                    <span className="truncate">{relatedModuleTitle}</span>
-                                  </div>
-                                )}
-
-                                {!relatedCourseTitle && !relatedModuleTitle && (
-                                  <div className="text-xs text-slate-600 font-medium">
-                                    {item.type ||
-                                      item.brand ||
-                                      item.period ||
-                                      item.pricing_type ||
-                                      item.read_time ||
-                                      item.category ||
-                                      "-"}
-                                  </div>
-                                )}
-
-                                {item.level && (
-                                  <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[10px] border border-indigo-100">
-                                    {item.level}
-                                  </span>
-                                )}
-                                {item.status && (
-                                  <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[10px] border border-emerald-100">
-                                    ● {item.status}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Col 3: Tags & Atribut */}
-                            <td className="px-6 py-4">
-                              <div className="flex flex-wrap gap-1 max-w-xs">
-                                {Array.isArray(tags) &&
-                                  tags.slice(0, 3).map((tg: string) => (
-                                    <span
-                                      key={tg}
-                                      className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-semibold border border-slate-200/50"
-                                    >
-                                      {tg}
-                                    </span>
-                                  ))}
-                                {Array.isArray(tags) && tags.length > 3 && (
-                                  <span className="text-[10px] text-slate-400 self-center">
-                                    +{tags.length - 3}
-                                  </span>
-                                )}
-                                {item.published === false && (
-                                  <span className="rounded-md bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
-                                    Draft
-                                  </span>
-                                )}
-                                {item.featured && (
-                                  <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
-                                    ★ Featured
-                                  </span>
-                                )}
-                                {item.metrics && (
-                                  <span className="rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-bold">
-                                    {item.metrics}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Col 4: Order Index */}
-                            <td className="px-6 py-4 text-center font-mono text-xs text-slate-500 font-bold">
-                              #{item.order_index ?? "-"}
-                            </td>
-
-                            {/* Col 5: Actions */}
-                            <td className="px-6 py-4 text-right">
-                              <div className="inline-flex items-center gap-1">
-                                <button
-                                  onClick={() => openEditModal(item)}
-                                  className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition"
-                                  title="Edit data"
-                                >
-                                  <Edit2 size={15} />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(item.id, primaryTitle)}
-                                  className="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
-                                  title="Hapus data"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  {/* Course Cards Pagination */}
+                  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+                    <PaginationControls
+                      currentPage={currentPage}
+                      totalPages={totalCoursePages}
+                      totalItems={filteredCourses.length}
+                      pageSize={COURSES_PER_PAGE}
+                      onPageChange={(page) => setCurrentPage(page)}
+                    />
+                  </div>
                 </div>
               )}
+            </div>
+          ) : (
+            /* 3. VIEW C: STANDARD TABLE VIEW WITH PAGINATION (Untuk semua tab lain: Prompts, News, Projects, Modules, Lessons, dll) */
+            <div className="space-y-4">
+              {/* Header Search Banner */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                      {currentTabConfig.label}
+                    </h1>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60 font-mono">
+                      {filteredItems.length} item
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{currentTabConfig.description}</p>
+                </div>
+
+                <div className="relative w-full sm:w-72">
+                  <Search
+                    size={14}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    placeholder={`Cari di ${currentTabConfig.label.toLowerCase()}...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Table Card */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                {loading ? (
+                  <div className="p-16 text-center space-y-3">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Memuat data {currentTabConfig.label}...
+                    </p>
+                  </div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="p-16 text-center">
+                    <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
+                      <currentTabConfig.icon size={22} />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-800">
+                      {searchQuery
+                        ? `Tidak ada hasil untuk "${searchQuery}"`
+                        : `Belum ada ${currentTabConfig.singular}`}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      {searchQuery
+                        ? "Coba gunakan kata kunci pencarian yang lain."
+                        : `Klik tombol "Tambah ${currentTabConfig.singular}" di kanan atas untuk membuat data baru.`}
+                    </p>
+                    {searchQuery ? (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                      >
+                        Reset Pencarian
+                      </button>
+                    ) : (
+                      <button
+                        onClick={openCreateModal}
+                        className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
+                      >
+                        <Plus size={14} /> Tambah {currentTabConfig.singular} Pertama
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          <tr>
+                            <th className="px-6 py-4">Judul / Entitas Utama</th>
+                            <th className="px-6 py-4">Kategori & Relasi</th>
+                            <th className="px-6 py-4">Tags & Atribut</th>
+                            <th className="px-6 py-4 text-center">Urutan</th>
+                            <th className="px-6 py-4 text-right">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {paginatedItems.map((item) => {
+                            const primaryTitle =
+                              item.title ||
+                              item.name ||
+                              item.role ||
+                              item.institution ||
+                              item.metric ||
+                              "Tanpa Judul";
+                            const subtitle =
+                              item.tagline ||
+                              item.headline ||
+                              item.description ||
+                              item.company ||
+                              item.degree ||
+                              item.note ||
+                              item.excerpt ||
+                              "";
+                            const tags = item.tags || (item.category ? [item.category] : []);
+
+                            // Friendly relation info
+                            const relatedCourseTitle = item.course_id
+                              ? courseMap.get(item.course_id)
+                              : null;
+                            const relatedModuleTitle = item.module_id
+                              ? moduleMap.get(item.module_id)
+                              : null;
+
+                            return (
+                              <tr key={item.id} className="hover:bg-slate-50/80 transition group">
+                                {/* Col 1: Primary Title + Image/Slug */}
+                                <td className="px-6 py-4">
+                                  <div className="flex items-start gap-3">
+                                    {(item.cover_image || item.image_url) && (
+                                      /* eslint-disable-next-line @next/next/no-img-element */
+                                      <img
+                                        src={item.cover_image || item.image_url}
+                                        alt={primaryTitle}
+                                        className="h-11 w-14 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs mt-0.5"
+                                      />
+                                    )}
+                                    <div className="min-w-0">
+                                      <div className="font-bold text-slate-900 text-sm leading-snug line-clamp-1">
+                                        {primaryTitle}
+                                      </div>
+                                      {subtitle && (
+                                        <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-md">
+                                          {subtitle}
+                                        </div>
+                                      )}
+                                      {item.slug && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                                            /{item.slug}
+                                          </span>
+                                          {activeTab === "lessons" && item.course_id && (
+                                            <Link
+                                              href={`/tutorials/${
+                                                courseMap.get(item.course_id) || item.course_id
+                                              }/${item.slug}`}
+                                              target="_blank"
+                                              className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                                            >
+                                              Live <ExternalLink size={9} />
+                                            </Link>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Col 2: Relasi & Kategori */}
+                                <td className="px-6 py-4">
+                                  <div className="space-y-1 max-w-xs">
+                                    {relatedCourseTitle && (
+                                      <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-lg">
+                                        <BookOpen size={10} className="shrink-0 text-blue-600" />
+                                        <span className="truncate">{relatedCourseTitle}</span>
+                                      </div>
+                                    )}
+                                    {relatedModuleTitle && (
+                                      <div className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg ml-0.5">
+                                        <FolderGit2 size={10} className="shrink-0 text-slate-500" />
+                                        <span className="truncate">{relatedModuleTitle}</span>
+                                      </div>
+                                    )}
+
+                                    {!relatedCourseTitle && !relatedModuleTitle && (
+                                      <div className="text-xs text-slate-600 font-medium">
+                                        {item.type ||
+                                          item.brand ||
+                                          item.period ||
+                                          item.pricing_type ||
+                                          item.read_time ||
+                                          item.category ||
+                                          "-"}
+                                      </div>
+                                    )}
+
+                                    {item.level && (
+                                      <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[10px] border border-indigo-100">
+                                        {item.level}
+                                      </span>
+                                    )}
+                                    {item.status && (
+                                      <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[10px] border border-emerald-100">
+                                        ● {item.status}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                {/* Col 3: Tags & Atribut */}
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-1 max-w-xs">
+                                    {Array.isArray(tags) &&
+                                      tags.slice(0, 3).map((tg: string) => (
+                                        <span
+                                          key={tg}
+                                          className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-semibold border border-slate-200/50"
+                                        >
+                                          {tg}
+                                        </span>
+                                      ))}
+                                    {Array.isArray(tags) && tags.length > 3 && (
+                                      <span className="text-[10px] text-slate-400 self-center">
+                                        +{tags.length - 3}
+                                      </span>
+                                    )}
+                                    {item.published === false && (
+                                      <span className="rounded-md bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
+                                        Draft
+                                      </span>
+                                    )}
+                                    {item.featured && (
+                                      <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                                        ★ Featured
+                                      </span>
+                                    )}
+                                    {item.metrics && (
+                                      <span className="rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-bold">
+                                        {item.metrics}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                {/* Col 4: Order Index */}
+                                <td className="px-6 py-4 text-center font-mono text-xs text-slate-500 font-bold">
+                                  #{item.order_index ?? "-"}
+                                </td>
+
+                                {/* Col 5: Actions */}
+                                <td className="px-6 py-4 text-right">
+                                  <div className="inline-flex items-center gap-1">
+                                    <button
+                                      onClick={() => openEditModal(item)}
+                                      className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition"
+                                      title="Edit data"
+                                    >
+                                      <Edit2 size={15} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(item.id, primaryTitle)}
+                                      className="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                                      title="Hapus data"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination for Standard Tables */}
+                    <PaginationControls
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={filteredItems.length}
+                      pageSize={ITEMS_PER_PAGE}
+                      onPageChange={(page) => setCurrentPage(page)}
+                    />
+                  </>
+                )}
+              </div>
             </div>
           )}
         </main>
@@ -2201,7 +2518,6 @@ export default function AdminPage() {
                                 ...prev,
                                 course_id: newCourseId,
                               };
-                              // If on lessons entity, automatically reset or select the first module of the chosen course
                               if (modalEntity === "lessons") {
                                 const matchingMods = allModules.filter(
                                   (m) => m.course_id === newCourseId
@@ -2232,9 +2548,9 @@ export default function AdminPage() {
                   }
 
                   if (field.name === "module_id") {
-                    const selectedCourseId = formData["course_id"];
+                    const selectedCourseIdForForm = formData["course_id"];
                     const availableModules = allModules.filter(
-                      (m) => m.course_id === selectedCourseId
+                      (m) => m.course_id === selectedCourseIdForForm
                     );
 
                     return (
@@ -2248,11 +2564,11 @@ export default function AdminPage() {
                             setFormData({ ...formData, module_id: e.target.value })
                           }
                           required={field.required}
-                          disabled={!selectedCourseId}
+                          disabled={!selectedCourseIdForForm}
                           className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:border-blue-500 focus:bg-white focus:outline-none disabled:opacity-50"
                         >
                           <option value="">
-                            {selectedCourseId
+                            {selectedCourseIdForForm
                               ? availableModules.length > 0
                                 ? "-- Pilih Modul Bab --"
                                 : "Belum ada modul di kursus ini"
@@ -2290,7 +2606,6 @@ export default function AdminPage() {
                             const val = e.target.value;
                             setFormData((prev) => {
                               const updated = { ...prev, [field.name]: val };
-                              // Auto slug if creating new item or slug is empty
                               if (!editingItem || !prev.slug) {
                                 updated.slug = slugify(val);
                               }
@@ -2343,7 +2658,7 @@ export default function AdminPage() {
                     );
                   }
 
-                  // 4. CHIP SELECTORS (e.g. type, level, status, pricing_type)
+                  // 4. CHIP SELECTORS
                   if (field.type === "chip_select" && field.options) {
                     const currentVal = formData[field.name];
                     return (
