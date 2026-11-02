@@ -7,12 +7,12 @@ import {
   FolderGit2, Boxes, Newspaper, Briefcase, GraduationCap,
   Layers, TrendingUp, Plus, Edit2, Trash2, KeyRound, LogOut,
   RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ExternalLink,
-  Image as ImageIcon, UploadCloud, X, Sparkles
+  Image as ImageIcon, UploadCloud, X, Sparkles, BookOpen, Bookmark
 } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import FileUploadZone from "@/components/FileUploadZone";
 
-type TabKey = "projects" | "products" | "prompts" | "news" | "experiences" | "educations" | "stacks" | "impact";
+type TabKey = "projects" | "products" | "prompts" | "courses" | "modules" | "lessons" | "news" | "experiences" | "educations" | "stacks" | "impact";
 
 interface TabConfig {
   key: TabKey;
@@ -82,6 +82,55 @@ const TABS: TabConfig[] = [
       { name: "tags", label: "Tags (comma-separated, e.g. Golang, DDD, Clean Architecture)", type: "tags" },
       { name: "prompt_text", label: "Prompt Content (Full Prompt / Template)", type: "markdown", required: true },
       { name: "instructions", label: "Usage Instructions / Tips", type: "textarea" },
+      { name: "order_index", label: "Display Order", type: "number" },
+    ],
+  },
+  {
+    key: "courses",
+    label: "Tutorial Tracks",
+    icon: BookOpen,
+    singular: "Course Track",
+    fields: [
+      { name: "title", label: "Track Title", type: "text", required: true },
+      { name: "slug", label: "Slug (e.g. event-driven-rabbitmq)", type: "text", required: true },
+      { name: "tagline", label: "Tagline", type: "text" },
+      { name: "category", label: "Category (e.g. Distributed Systems & Backend)", type: "text" },
+      { name: "level", label: "Level (e.g. Intermediate — Advanced)", type: "text" },
+      { name: "badge", label: "Badge (e.g. Flagship Track, New)", type: "text" },
+      { name: "icon", label: "Icon Name (Workflow, Cpu, BookOpen)", type: "text" },
+      { name: "description", label: "Full Description", type: "textarea", required: true },
+      { name: "published", label: "Published Status", type: "boolean" },
+      { name: "order_index", label: "Display Order", type: "number" },
+    ],
+  },
+  {
+    key: "modules",
+    label: "Tutorial Modules",
+    icon: FolderGit2,
+    singular: "Module",
+    fields: [
+      { name: "course_id", label: "Course ID (UUID)", type: "text", required: true },
+      { name: "title", label: "Module Title (e.g. Foundations of Distributed Systems)", type: "text", required: true },
+      { name: "slug", label: "Module Slug (e.g. 01-foundations)", type: "text", required: true },
+      { name: "order_index", label: "Display Order", type: "number" },
+    ],
+  },
+  {
+    key: "lessons",
+    label: "Tutorial Lessons",
+    icon: Bookmark,
+    singular: "Lesson",
+    fields: [
+      { name: "course_id", label: "Course ID (UUID)", type: "text", required: true },
+      { name: "module_id", label: "Module ID (UUID)", type: "text", required: true },
+      { name: "title", label: "Lesson Title", type: "text", required: true },
+      { name: "slug", label: "Slug (e.g. intro-event-driven)", type: "text", required: true },
+      { name: "type", label: "Type (reading, code, architecture)", type: "text" },
+      { name: "duration", label: "Duration (e.g. 8 min read)", type: "text" },
+      { name: "excerpt", label: "Excerpt Summary", type: "textarea" },
+      { name: "tags", label: "Tags (comma-separated)", type: "tags" },
+      { name: "content", label: "Lesson Markdown Content (Live Editor)", type: "markdown", required: true },
+      { name: "published", label: "Published Status", type: "boolean" },
       { name: "order_index", label: "Display Order", type: "number" },
     ],
   },

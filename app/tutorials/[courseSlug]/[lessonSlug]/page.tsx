@@ -13,7 +13,7 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const result = getLesson(params.courseSlug, params.lessonSlug);
+  const result = await getLesson(params.courseSlug, params.lessonSlug);
   if (!result) {
     return { title: "Lesson Not Found | Refa's Tutorials" };
   }
@@ -30,8 +30,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default function LessonDetailPage({ params }: PageProps) {
-  const result = getLesson(params.courseSlug, params.lessonSlug);
+export default async function LessonDetailPage({ params }: PageProps) {
+  const result = await getLesson(params.courseSlug, params.lessonSlug);
 
   if (!result) {
     notFound();

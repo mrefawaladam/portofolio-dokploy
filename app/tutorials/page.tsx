@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TutorialsCatalogPage() {
-  const courses = getAllCourses();
+export default async function TutorialsCatalogPage() {
+  const courses = await getAllCourses();
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-slate-800 flex flex-col justify-between">

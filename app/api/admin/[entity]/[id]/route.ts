@@ -81,6 +81,41 @@ const ALLOWED_ENTITIES: Record<string, { table: string; fields: string[] }> = {
       "order_index",
     ],
   },
+  courses: {
+    table: "public.tutorial_courses",
+    fields: [
+      "slug",
+      "title",
+      "tagline",
+      "description",
+      "category",
+      "level",
+      "badge",
+      "icon",
+      "order_index",
+      "published",
+    ],
+  },
+  modules: {
+    table: "public.tutorial_modules",
+    fields: ["course_id", "slug", "title", "order_index"],
+  },
+  lessons: {
+    table: "public.tutorial_lessons",
+    fields: [
+      "course_id",
+      "module_id",
+      "slug",
+      "title",
+      "order_index",
+      "duration",
+      "type",
+      "excerpt",
+      "tags",
+      "content",
+      "published",
+    ],
+  },
 };
 
 export async function PUT(

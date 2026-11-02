@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const courses = getAllCourses();
+    const courses = await getAllCourses();
     return NextResponse.json({ courses });
   } catch (err: any) {
     console.error("Failed to load tutorials in API:", err);

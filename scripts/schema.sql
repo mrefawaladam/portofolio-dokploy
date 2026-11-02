@@ -711,3 +711,82 @@ Generate an end-to-end migration execution plan:
    - Immediate circuit-breaker rollback triggers based on error rate or latency thresholds.',
     6
 );
+
+-- ==============================================================================
+-- 9. TABLE: tutorial_courses (Katalog Kursus & Workshop)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.tutorial_courses (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    slug VARCHAR(120) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    tagline VARCHAR(255),
+    description TEXT NOT NULL,
+    category VARCHAR(100) DEFAULT 'Distributed Systems & Backend',
+    level VARCHAR(50) DEFAULT 'Intermediate — Advanced',
+    badge VARCHAR(50) DEFAULT 'Flagship Track',
+    icon VARCHAR(50) DEFAULT 'Workflow',
+    order_index INT DEFAULT 1,
+    published BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ==============================================================================
+-- 10. TABLE: tutorial_modules (Bab / Modul dalam Kursus)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.tutorial_modules (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    course_id UUID REFERENCES public.tutorial_courses(id) ON DELETE CASCADE,
+    slug VARCHAR(120) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    order_index INT DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ==============================================================================
+-- 11. TABLE: tutorial_lessons (Materi Lesson dengan Konten Markdown)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.tutorial_lessons (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    course_id UUID REFERENCES public.tutorial_courses(id) ON DELETE CASCADE,
+    module_id UUID REFERENCES public.tutorial_modules(id) ON DELETE CASCADE,
+    slug VARCHAR(120) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    order_index INT DEFAULT 1,
+    duration VARCHAR(50) DEFAULT '10 min read',
+    type VARCHAR(50) DEFAULT 'reading',
+    excerpt TEXT,
+    tags TEXT[] DEFAULT '{}',
+    content TEXT NOT NULL,
+    published BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT unique_course_lesson_slug UNIQUE (course_id, slug)
+);
+
+-- Insert Flagship Course Seed
+INSERT INTO public.tutorial_courses (id, slug, title, tagline, description, category, level, badge, icon, order_index, published)
+VALUES (
+    '00000000-0000-0000-0000-000000000101',
+    'event-driven-rabbitmq',
+    'Mastering Event-Driven Architecture with RabbitMQ & Golang',
+    'Panduan arsitektur sistem terdistribusi, asynchronous messaging, dan high-throughput worker skala enterprise.',
+    'Pelajari cara mengubah backend monolitik yang lambat menjadi sistem terdistribusi decoupled berkecepatan tinggi menggunakan RabbitMQ dan Golang, lengkap dengan penanganan idempotency, Dead Letter Queues, dan monitoring performa.',
+    'Distributed Systems & Backend',
+    'Intermediate — Advanced',
+    'Flagship Track',
+    'Workflow',
+    1,
+    true
+) ON CONFLICT (slug) DO UPDATE SET
+    title = EXCLUDED.title,
+    description = EXCLUDED.description;
+
+-- Insert Modules Seed
+INSERT INTO public.tutorial_modules (id, course_id, slug, title, order_index)
+VALUES 
+    ('00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000101', '01-foundations', 'Foundations of Distributed Systems', 1),
+    ('00000000-0000-0000-0000-000000000202', '00000000-0000-0000-0000-000000000101', '02-architecture-patterns', 'Core Architecture & Message Patterns', 2),
+    ('00000000-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000101', '03-golang-implementation', 'Golang Production Implementation', 3)
+ON CONFLICT (id) DO NOTHING;
+

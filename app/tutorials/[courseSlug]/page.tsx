@@ -7,8 +7,8 @@ interface PageProps {
   };
 }
 
-export default function CourseRedirectPage({ params }: PageProps) {
-  const course = getCourse(params.courseSlug);
+export default async function CourseRedirectPage({ params }: PageProps) {
+  const course = await getCourse(params.courseSlug);
 
   if (!course) {
     notFound();
