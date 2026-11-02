@@ -8,7 +8,7 @@ import {
   ArrowRight, ArrowUpRight, Braces, Boxes, Database, Github, Linkedin,
   Menu, Network, RadioTower, ServerCog, Workflow, X, Zap, Layers3,
   GraduationCap, MapPin, Phone, Globe, Cpu,
-  Clock, Send, MessageSquare, Shield, Download,
+  Clock, Send, MessageSquare, Shield, Download, BookOpen, CheckCircle2,
 } from "lucide-react";
 import { PortfolioData, NewsArticle } from "@/types/portfolio";
 import {
@@ -43,6 +43,7 @@ const reveal = {
 const navItems = [
   ["Projects", "/#projects"],
   ["Products", "/#products"],
+  ["Tutorials", "/#tutorials"],
   ["Prompts", "/prompts"],
   ["News", "/news"],
   ["Toolkit", "/#expertise"],
@@ -467,7 +468,164 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 03: PROMPT SHOWCASE & AI WORKFLOWS */}
+      {/* SECTION 03: TUTORIALS & LEARNING TRACKS */}
+      <section id="tutorials" className="container-shell py-20 md:py-28 border-t border-slate-200">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={reveal}
+          className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end"
+        >
+          <div>
+            <p className="eyebrow text-blue-700">03 / Technical Workshops &amp; Guides</p>
+            <h2 className="section-title mt-4">
+              Coursera-Style<br />
+              <span className="text-slate-400">Tutorial Tracks.</span>
+            </h2>
+          </div>
+          <div className="flex flex-col items-start md:items-end gap-3">
+            <p className="max-w-md text-sm leading-6 text-slate-600 md:text-right">
+              Panduan arsitektur sistem nyata dengan kurikulum bertahap, modular markdown chapters, syntax-highlighted code, dan progress tracking interaktif.
+            </p>
+            <Link
+              href="/tutorials"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200/80 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 hover:text-blue-900 transition"
+            >
+              Open Full Catalog <ArrowRight size={13} />
+            </Link>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          {/* Card 1: Event-Driven RabbitMQ & Golang */}
+          <motion.article
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.1 }}
+            variants={reveal}
+            className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
+                  Distributed Systems
+                </span>
+                <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                  Flagship Track
+                </span>
+              </div>
+
+              <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
+                Mastering Event-Driven Architecture with RabbitMQ &amp; Golang
+              </h3>
+              <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600">
+                Pelajari cara mengubah backend monolitik yang lambat menjadi sistem terdistribusi decoupled berkecepatan tinggi menggunakan RabbitMQ dan Golang, lengkap dengan penanganan idempotency, Dead Letter Queues, dan monitoring performa.
+              </p>
+
+              {/* Module Previews */}
+              <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Curriculum Outline · 3 Modules · 6 Lessons
+                </p>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
+                  <span className="font-medium truncate">01. Foundations of Distributed Systems</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
+                  <span className="font-medium truncate">02. Core Architecture &amp; Message Patterns</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
+                  <span className="font-medium truncate">03. Golang Production Implementation</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <Clock size={13} className="text-slate-400" />
+                <span>~1h 10m read</span>
+                <span>•</span>
+                <span className="text-emerald-600 font-semibold">100% Free (.MD)</span>
+              </div>
+              <Link
+                href="/tutorials/event-driven-rabbitmq"
+                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 hover:gap-3"
+              >
+                <span>Start Learning</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </motion.article>
+
+          {/* Card 2: Clean Architecture & DDD */}
+          <motion.article
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.1 }}
+            variants={reveal}
+            transition={{ delay: 0.1 }}
+            className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <span className="rounded-full bg-purple-50 px-3 py-1 text-[11px] font-bold text-purple-700">
+                  Software Engineering
+                </span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Next Track
+                </span>
+              </div>
+
+              <h3 className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-blue-700 transition">
+                Clean Architecture &amp; Domain-Driven Design (DDD) in Full-Stack Apps
+              </h3>
+              <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-600">
+                Pemisahan domain logic dari framework database, boundary aggregates, repository pattern, dan implementasi hexagonal architecture pada Golang dan Next.js enterprise.
+              </p>
+
+              {/* Module Previews */}
+              <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Curriculum Outline · 3 Modules · 5 Lessons
+                </p>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
+                  <span className="font-medium truncate">01. Strategic &amp; Tactical DDD Patterns</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
+                  <span className="font-medium truncate">02. Entities, Value Objects &amp; Aggregates</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">2 lessons</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700 border border-slate-100">
+                  <span className="font-medium truncate">03. Repository &amp; Unit of Work in Go</span>
+                  <span className="text-[10px] text-slate-400 shrink-0">1 lesson</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <BookOpen size={13} className="text-slate-400" />
+                <span>Interactive Hub</span>
+                <span>•</span>
+                <span>Markdown-Powered</span>
+              </div>
+              <Link
+                href="/tutorials"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-blue-700"
+              >
+                <span>Browse Tracks</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </motion.article>
+        </div>
+      </section>
+
+      {/* SECTION 04: PROMPT SHOWCASE & AI WORKFLOWS */}
       <section id="prompts" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div
           initial="hidden"
@@ -477,7 +635,7 @@ export default function Home() {
           className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"
         >
           <div>
-            <p className="eyebrow text-blue-700">03 / Prompt Engineering</p>
+            <p className="eyebrow text-blue-700">04 / Prompt Engineering</p>
             <h2 className="section-title mt-4">
               AI &amp; System<br />
               <span className="text-slate-400">Prompt Showcase.</span>
@@ -505,11 +663,11 @@ export default function Home() {
         )}
       </section>
 
-      {/* SECTION 04: NEWS & DEVLOG */}
+      {/* SECTION 05: NEWS & DEVLOG */}
       <section id="news" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="eyebrow text-blue-700">04 / News & Devlog</p>
+            <p className="eyebrow text-blue-700">05 / News &amp; Devlog</p>
             <h2 className="section-title mt-4">Engineering<br /><span className="text-slate-400">Updates.</span></h2>
           </div>
           <div className="flex flex-col items-start md:items-end gap-3">
@@ -575,10 +733,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 05: TOOLKIT */}
+      {/* SECTION 06: TOOLKIT */}
       <section id="expertise" className="container-shell py-20 md:py-28 border-t border-slate-200">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal} className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div><p className="eyebrow text-blue-700">05 / The toolkit</p><h2 className="section-title mt-4">Good tools.<br /><span className="text-slate-400">Better systems.</span></h2></div>
+          <div><p className="eyebrow text-blue-700">06 / The toolkit</p><h2 className="section-title mt-4">Good tools.<br /><span className="text-slate-400">Better systems.</span></h2></div>
           <p className="max-w-sm text-sm leading-6 text-slate-600">Core technologies used to design resilient backend services, scalable data pipelines, and responsive web systems.</p>
         </motion.div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">

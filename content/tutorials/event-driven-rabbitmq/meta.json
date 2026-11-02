@@ -1,0 +1,11 @@
+{
+  "slug": "event-driven-rabbitmq",
+  "title": "Mastering Event-Driven Architecture with RabbitMQ & Golang",
+  "tagline": "Panduan arsitektur sistem terdistribusi, asynchronous messaging, dan high-throughput worker skala enterprise.",
+  "description": "Pelajari cara mengubah backend monolitik yang lambat menjadi sistem terdistribusi decoupled berkecepatan tinggi menggunakan RabbitMQ dan Golang, lengkap dengan penanganan idempotency, Dead Letter Queues, dan monitoring performa.",
+  "category": "Distributed Systems & Backend",
+  "level": "Intermediate — Advanced",
+  "badge": "Flagship Track",
+  "icon": "Workflow",
+  "order": 1
+}
