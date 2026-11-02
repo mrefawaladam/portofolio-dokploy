@@ -101,9 +101,36 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
               {children}
             </ol>
           ),
-          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          li: ({ children, className }: any) => {
+            const isTaskList = className?.includes("task-list-item");
+            return (
+              <li
+                className={`leading-relaxed ${
+                  isTaskList
+                    ? "list-none -ml-4 flex items-center gap-2.5 py-1 text-slate-700"
+                    : ""
+                }`}
+              >
+                {children}
+              </li>
+            );
+          },
+          input: ({ type, checked, ...props }: any) => {
+            if (type === "checkbox") {
+              return (
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  readOnly
+                  className="h-4 w-4 rounded-full border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-default shrink-0 inline-block align-middle"
+                  {...props}
+                />
+              );
+            }
+            return <input type={type} checked={checked} {...props} />;
+          },
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-blue-500 bg-blue-50/60 pl-4 py-2 my-4 rounded-r-xl text-slate-700 italic text-sm md:text-[15px]">
+            <blockquote className="my-5 rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/60 via-slate-50 to-indigo-50/30 p-5 text-slate-700 shadow-2xs">
               {children}
             </blockquote>
           ),
