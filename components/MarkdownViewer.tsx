@@ -108,23 +108,59 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
             </blockquote>
           ),
           hr: () => <hr className="my-6 border-slate-200" />,
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-blue-600 hover:text-blue-800 underline decoration-blue-300 underline-offset-2 transition"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            // Check if href is an image URL (e.g. from OpenAI/ChatGPT search or ends with image extensions)
+            const isImageLink =
+              href &&
+              (/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(href) ||
+                href.includes("images.openai.com") ||
+                href.includes("purpose=inline"));
+
+            if (isImageLink) {
+              return (
+                <span className="flex flex-col sm:flex-row sm:items-center gap-3.5 my-3.5 p-3 rounded-2xl border border-slate-200 bg-white shadow-2xs hover:border-blue-400 hover:shadow-xs transition group max-w-2xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={href}
+                    alt={typeof children === "string" ? children : "Visual preview"}
+                    className="h-20 w-24 rounded-xl object-cover border border-slate-100 shrink-0 bg-slate-50"
+                    loading="lazy"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold text-slate-800 line-clamp-2 leading-snug">
+                      {children}
+                    </span>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 group-hover:underline mt-1 font-semibold"
+                    >
+                      Buka Gambar Asli ↗
+                    </a>
+                  </span>
+                </span>
+              );
+            }
+
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-blue-600 hover:text-blue-800 underline decoration-blue-300 underline-offset-2 transition"
+              >
+                {children}
+              </a>
+            );
+          },
           img: ({ src, alt }) => (
-            <span className="block my-5">
+            <span className="block my-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={src}
-                alt={alt || "Article image"}
-                className="max-h-[500px] w-full rounded-2xl object-cover border border-slate-200 shadow-sm transition hover:shadow-md"
+                alt={alt || "Gambar Ilustrasi"}
+                className="max-h-[420px] w-auto max-w-full rounded-2xl object-contain border border-slate-200 bg-slate-50 shadow-xs transition hover:shadow-md"
                 loading="lazy"
               />
               {alt && (
