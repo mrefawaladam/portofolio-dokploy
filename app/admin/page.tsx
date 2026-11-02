@@ -1,209 +1,864 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  FolderGit2, Boxes, Newspaper, Briefcase, GraduationCap,
-  Layers, TrendingUp, Plus, Edit2, Trash2, KeyRound, LogOut,
-  RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ExternalLink,
-  Image as ImageIcon, UploadCloud, X, Sparkles, BookOpen, Bookmark
+  FolderGit2,
+  Boxes,
+  Newspaper,
+  Briefcase,
+  GraduationCap,
+  Layers,
+  TrendingUp,
+  Plus,
+  Edit2,
+  Trash2,
+  LogOut,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
+  ExternalLink,
+  X,
+  Sparkles,
+  BookOpen,
+  Bookmark,
+  Search,
+  Menu,
+  FileText,
+  Settings2,
+  HelpCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
-import FileUploadZone from "@/components/FileUploadZone";
+import AdminSidebar, { TabKey } from "@/components/admin/AdminSidebar";
 
-type TabKey = "projects" | "products" | "prompts" | "courses" | "modules" | "lessons" | "news" | "experiences" | "educations" | "stacks" | "impact";
+// Helper function to auto-generate URL-friendly slug
+function slugify(text: string): string {
+  return (text || "")
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
+    .replace(/\-\-+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start of text
+    .replace(/-+$/, ""); // Trim - from end of text
+}
+
+interface FieldConfig {
+  name: string;
+  label: string;
+  type:
+    | "text"
+    | "textarea"
+    | "number"
+    | "boolean"
+    | "tags"
+    | "markdown"
+    | "image"
+    | "select"
+    | "chip_select";
+  required?: boolean;
+  helper?: string;
+  placeholder?: string;
+  options?: { label: string; value: string }[] | string[];
+}
 
 interface TabConfig {
   key: TabKey;
   label: string;
-  icon: any;
   singular: string;
-  fields: {
-    name: string;
-    label: string;
-    type: "text" | "textarea" | "number" | "boolean" | "tags" | "markdown" | "image";
-    required?: boolean;
-  }[];
+  icon: React.ElementType;
+  description: string;
+  fields: FieldConfig[];
 }
 
 const TABS: TabConfig[] = [
   {
-    key: "projects",
-    label: "Projects",
-    icon: FolderGit2,
-    singular: "Project",
-    fields: [
-      { name: "title", label: "Project Title", type: "text", required: true },
-      { name: "slug", label: "Slug", type: "text", required: true },
-      { name: "tagline", label: "Tagline", type: "text" },
-      { name: "image_url", label: "Project Cover / Screenshot Image", type: "image" },
-      { name: "description", label: "Description (Supports Markdown)", type: "markdown", required: true },
-      { name: "category", label: "Category (e.g. Backend, Full Stack, Architecture)", type: "text" },
-      { name: "tags", label: "Tags (comma-separated, e.g. Golang, RabbitMQ, Docker)", type: "tags" },
-      { name: "demo_url", label: "Demo / Live URL", type: "text" },
-      { name: "github_url", label: "GitHub URL", type: "text" },
-      { name: "metrics", label: "Key Metrics (e.g. -35% Latency)", type: "text" },
-      { name: "featured", label: "Featured on Homepage", type: "boolean" },
-      { name: "order_index", label: "Display Order (1, 2, 3...)", type: "number" },
-    ],
-  },
-  {
-    key: "products",
-    label: "Products",
-    icon: Boxes,
-    singular: "Product",
-    fields: [
-      { name: "name", label: "Product Name", type: "text", required: true },
-      { name: "slug", label: "Slug", type: "text", required: true },
-      { name: "headline", label: "Headline", type: "text", required: true },
-      { name: "description", label: "Description", type: "textarea", required: true },
-      { name: "status", label: "Status (Live, Beta, In Development, Concept)", type: "text" },
-      { name: "pricing_type", label: "Pricing Type (Open Source, Free, Freemium, Commercial)", type: "text" },
-      { name: "product_url", label: "Product URL", type: "text" },
-      { name: "github_url", label: "GitHub URL", type: "text" },
-      { name: "badge", label: "Badge (e.g. v1.2, Popular, New)", type: "text" },
-      { name: "icon_name", label: "Icon Name (Network, Cpu, Layers3, Boxes)", type: "text" },
-      { name: "order_index", label: "Display Order", type: "number" },
-    ],
-  },
-  {
-    key: "prompts",
-    label: "Prompt Showcase",
-    icon: Sparkles,
-    singular: "Prompt",
-    fields: [
-      { name: "title", label: "Prompt Title", type: "text", required: true },
-      { name: "slug", label: "Slug", type: "text", required: true },
-      { name: "type", label: "Type (e.g. Architecture & DDD, Distributed Systems, Autonomous Agent)", type: "text", required: true },
-      { name: "target_model", label: "Target Model (e.g. Claude 3.5 Sonnet, GPT-4o, DeepSeek-V3)", type: "text" },
-      { name: "badge", label: "Badge (e.g. Production Tested, Staff Pick, High Accuracy)", type: "text" },
-      { name: "description", label: "Short Description / Purpose", type: "textarea", required: true },
-      { name: "tags", label: "Tags (comma-separated, e.g. Golang, DDD, Clean Architecture)", type: "tags" },
-      { name: "prompt_text", label: "Prompt Content (Full Prompt / Template)", type: "markdown", required: true },
-      { name: "instructions", label: "Usage Instructions / Tips", type: "textarea" },
-      { name: "order_index", label: "Display Order", type: "number" },
-    ],
-  },
-  {
     key: "courses",
     label: "Tutorial Tracks",
+    singular: "Track Kursus",
     icon: BookOpen,
-    singular: "Course Track",
+    description: "Kurikulum kursus komprehensif (Coursera-style)",
     fields: [
-      { name: "title", label: "Track Title", type: "text", required: true },
-      { name: "slug", label: "Slug (e.g. event-driven-rabbitmq)", type: "text", required: true },
-      { name: "tagline", label: "Tagline", type: "text" },
-      { name: "category", label: "Category (e.g. Distributed Systems & Backend)", type: "text" },
-      { name: "level", label: "Level (e.g. Intermediate — Advanced)", type: "text" },
-      { name: "badge", label: "Badge (e.g. Flagship Track, New)", type: "text" },
-      { name: "icon", label: "Icon Name (Workflow, Cpu, BookOpen)", type: "text" },
-      { name: "description", label: "Full Description", type: "textarea", required: true },
-      { name: "published", label: "Published Status", type: "boolean" },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "title",
+        label: "Judul Kursus",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Mastering Event-Driven Architecture with RabbitMQ & Golang",
+        helper: "Judul utama kursus yang akan menjadi headline track.",
+      },
+      {
+        name: "slug",
+        label: "Slug URL",
+        type: "text",
+        required: true,
+        placeholder: "e.g. event-driven-rabbitmq",
+        helper: "URL identitas kursus. Otomatis dibuat dari judul saat Anda mengetik.",
+      },
+      {
+        name: "tagline",
+        label: "Tagline Singkat",
+        type: "text",
+        placeholder: "e.g. Enterprise Message Broker Patterns & Distributed Microservices",
+        helper: "Satu kalimat ringkas penjelas nilai kursus ini.",
+      },
+      {
+        name: "category",
+        label: "Kategori Bidang",
+        type: "text",
+        placeholder: "e.g. Distributed Systems & Backend",
+        options: [
+          "Distributed Systems & Backend",
+          "Cloud & DevOps Architecture",
+          "Software Engineering & DDD",
+          "Golang High-Concurrency",
+        ],
+        helper: "Kategori keilmuan kursus.",
+      },
+      {
+        name: "level",
+        label: "Tingkat Kesulitan",
+        type: "chip_select",
+        options: [
+          { label: "Beginner", value: "Beginner" },
+          { label: "Intermediate", value: "Intermediate" },
+          { label: "Advanced", value: "Advanced" },
+          { label: "Intermediate — Advanced", value: "Intermediate — Advanced" },
+          { label: "All Levels", value: "All Levels" },
+        ],
+        helper: "Tingkat prasyarat materi.",
+      },
+      {
+        name: "badge",
+        label: "Badge Label",
+        type: "text",
+        placeholder: "e.g. Flagship Track, New, Popular",
+        helper: "Label pemanis di sudut kartu kursus.",
+      },
+      {
+        name: "icon",
+        label: "Nama Icon",
+        type: "text",
+        placeholder: "e.g. Workflow, Cpu, BookOpen, Network",
+        helper: "Nama icon Lucide (Workflow, Cpu, BookOpen, Network, Database).",
+      },
+      {
+        name: "description",
+        label: "Deskripsi Lengkap Kursus",
+        type: "textarea",
+        required: true,
+        placeholder: "Tuliskan silabus, target audiens, dan apa saja yang dipelajari...",
+        helper: "Penjelasan mendalam tentang seluruh rangkaian kursus ini.",
+      },
+      {
+        name: "published",
+        label: "Status Publikasi",
+        type: "boolean",
+        helper: "Aktifkan agar kursus tampil untuk publik di halaman /tutorials.",
+      },
+      {
+        name: "order_index",
+        label: "Nomor Urut Tampil",
+        type: "number",
+        helper: "Nomor urut (angka 1 akan tampil paling atas/pertama).",
+      },
     ],
   },
   {
     key: "modules",
     label: "Tutorial Modules",
+    singular: "Modul Bab",
     icon: FolderGit2,
-    singular: "Module",
+    description: "Kelompok bab kurikulum dalam suatu track kursus",
     fields: [
-      { name: "course_id", label: "Course ID (UUID)", type: "text", required: true },
-      { name: "title", label: "Module Title (e.g. Foundations of Distributed Systems)", type: "text", required: true },
-      { name: "slug", label: "Module Slug (e.g. 01-foundations)", type: "text", required: true },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "course_id",
+        label: "Pilih Track Kursus Induk",
+        type: "select",
+        required: true,
+        helper: "Pilih kursus yang menaungi modul bab ini (otomatis tanpa perlu copy-paste UUID!).",
+      },
+      {
+        name: "title",
+        label: "Judul Modul Bab",
+        type: "text",
+        required: true,
+        placeholder: "e.g. 01. Foundations of Distributed Systems",
+        helper: "Nama bab materi pembelajaran.",
+      },
+      {
+        name: "slug",
+        label: "Slug Modul",
+        type: "text",
+        required: true,
+        placeholder: "e.g. 01-foundations",
+        helper: "Slug unik untuk penamaan folder modul.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Bab",
+        type: "number",
+        helper: "Nomor bab dalam kursus (1, 2, 3...).",
+      },
     ],
   },
   {
     key: "lessons",
     label: "Tutorial Lessons",
+    singular: "Materi Lesson",
     icon: Bookmark,
-    singular: "Lesson",
+    description: "Artikel pembelajaran dan tutorial interaktif Markdown",
     fields: [
-      { name: "course_id", label: "Course ID (UUID)", type: "text", required: true },
-      { name: "module_id", label: "Module ID (UUID)", type: "text", required: true },
-      { name: "title", label: "Lesson Title", type: "text", required: true },
-      { name: "slug", label: "Slug (e.g. intro-event-driven)", type: "text", required: true },
-      { name: "type", label: "Type (reading, code, architecture)", type: "text" },
-      { name: "duration", label: "Duration (e.g. 8 min read)", type: "text" },
-      { name: "excerpt", label: "Excerpt Summary", type: "textarea" },
-      { name: "tags", label: "Tags (comma-separated)", type: "tags" },
-      { name: "content", label: "Lesson Markdown Content (Live Editor)", type: "markdown", required: true },
-      { name: "published", label: "Published Status", type: "boolean" },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "course_id",
+        label: "Langkah 1: Pilih Track Kursus",
+        type: "select",
+        required: true,
+        helper: "Pilih kursus utama materi ini.",
+      },
+      {
+        name: "module_id",
+        label: "Langkah 2: Pilih Modul Bab",
+        type: "select",
+        required: true,
+        helper: "Pilihan bab otomatis menyesuaikan dengan kursus yang Anda pilih di atas.",
+      },
+      {
+        name: "title",
+        label: "Judul Materi Pelajaran",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Memahami Exchange, Queue, dan Binding di RabbitMQ",
+        helper: "Judul artikel materi yang dipelajari pembaca.",
+      },
+      {
+        name: "slug",
+        label: "Slug Materi",
+        type: "text",
+        required: true,
+        placeholder: "e.g. intro-event-driven",
+        helper: "Akan digunakan pada URL: /tutorials/[course]/[slug]",
+      },
+      {
+        name: "type",
+        label: "Tipe Pembelajaran",
+        type: "chip_select",
+        options: [
+          { label: "📖 Reading Guide", value: "reading" },
+          { label: "💻 Code Walkthrough", value: "code" },
+          { label: "🏗️ System Architecture", value: "architecture" },
+        ],
+        helper: "Format penyajian materi.",
+      },
+      {
+        name: "duration",
+        label: "Estimasi Durasi Belajar",
+        type: "text",
+        placeholder: "e.g. 8 min read, 15 min read",
+        helper: "Perkiraan waktu yang dibutuhkan untuk menyelesaikan materi ini.",
+      },
+      {
+        name: "excerpt",
+        label: "Ringkasan Singkat (Excerpt)",
+        type: "textarea",
+        placeholder: "Rangkuman 1-2 kalimat tentang inti materi ini...",
+        helper: "Ditampilkan di daftar isi dan preview awal materi.",
+      },
+      {
+        name: "tags",
+        label: "Kata Kunci / Tags",
+        type: "tags",
+        placeholder: "e.g. RabbitMQ, AMQP, Go, Messaging, Architecture",
+        helper: "Pisahkan dengan koma.",
+      },
+      {
+        name: "content",
+        label: "Isi Materi Markdown (Editor Lengkap)",
+        type: "markdown",
+        required: true,
+        helper: "Tulis materi lengkap dengan pemformatan Markdown, blok kode, dan gambar.",
+      },
+      {
+        name: "published",
+        label: "Status Publikasi",
+        type: "boolean",
+        helper: "Aktifkan agar materi langsung bisa dibaca pengunjung.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Pelajaran",
+        type: "number",
+        helper: "Urutan pelajaran di dalam modul bab (1, 2, 3...).",
+      },
+    ],
+  },
+  {
+    key: "prompts",
+    label: "Prompt Showcase",
+    singular: "AI Prompt",
+    icon: Sparkles,
+    description: "Koleksi prompt engineering & system instructions siap pakai",
+    fields: [
+      {
+        name: "title",
+        label: "Judul Prompt",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Domain-Driven Design & Hexagonal Architecture Modeler",
+        helper: "Nama prompt instruksi.",
+      },
+      {
+        name: "slug",
+        label: "Slug URL",
+        type: "text",
+        required: true,
+        placeholder: "e.g. ddd-hexagonal-architect",
+        helper: "URL identitas prompt.",
+      },
+      {
+        name: "type",
+        label: "Kategori Prompt",
+        type: "chip_select",
+        required: true,
+        options: [
+          { label: "Architecture & DDD", value: "Architecture & DDD" },
+          { label: "Distributed Systems", value: "Distributed Systems" },
+          { label: "Database Tuning", value: "Database Tuning" },
+          { label: "Code Review & Security", value: "Code Review & Security" },
+          { label: "Refactoring & Migration", value: "Refactoring & Migration" },
+        ],
+        helper: "Spesialisasi prompt.",
+      },
+      {
+        name: "target_model",
+        label: "Model AI Rekomendasi",
+        type: "text",
+        placeholder: "e.g. Claude 3.5 Sonnet / GPT-4o",
+        options: ["Claude 3.5 Sonnet", "GPT-4o", "DeepSeek-V3", "Claude 3.5 Sonnet / GPT-4o"],
+        helper: "Model AI yang dioptimalkan untuk prompt ini.",
+      },
+      {
+        name: "badge",
+        label: "Badge Label",
+        type: "text",
+        placeholder: "e.g. Production Tested, Flagship Prompt, High Accuracy",
+        helper: "Label penanda kualitas prompt.",
+      },
+      {
+        name: "description",
+        label: "Ringkasan Tujuan Prompt",
+        type: "textarea",
+        required: true,
+        placeholder: "Jelaskan use-case utama dari prompt ini...",
+        helper: "Deskripsi singkat yang muncul di kartu katalog prompt.",
+      },
+      {
+        name: "tags",
+        label: "Tags",
+        type: "tags",
+        placeholder: "e.g. Golang, DDD, Microservices, Clean Architecture",
+        helper: "Pisahkan dengan koma.",
+      },
+      {
+        name: "instructions",
+        label: "Panduan Pemakaian / Variabel Input",
+        type: "textarea",
+        placeholder: "e.g. Ganti variabel {{DOMAIN_REQUIREMENTS}} dengan spesifikasi Anda...",
+        helper: "Panduan cara menggunakan atau mengisi template prompt.",
+      },
+      {
+        name: "prompt_text",
+        label: "Isi Prompt Lengkap (System Instruction)",
+        type: "markdown",
+        required: true,
+        helper: "Tuliskan seluruh instruksi prompt di sini.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Nomor urut (1 tampil pertama).",
+      },
     ],
   },
   {
     key: "news",
     label: "News & Articles",
+    singular: "Artikel Devlog",
     icon: Newspaper,
-    singular: "Article",
+    description: "Tulisan artikel teknis, catatan arsitektur, dan devlog",
     fields: [
-      { name: "title", label: "Article Title", type: "text", required: true },
-      { name: "slug", label: "Slug", type: "text", required: true },
-      { name: "cover_image", label: "Cover Image", type: "image" },
-      { name: "excerpt", label: "Excerpt Summary", type: "textarea", required: true },
-      { name: "content", label: "Full Content (Markdown & Multi-upload)", type: "markdown" },
-      { name: "category", label: "Category (Architecture, Engineering, Milestone)", type: "text" },
-      { name: "read_time", label: "Read Time (e.g. 4 min read)", type: "text" },
-      { name: "tags", label: "Tags (comma-separated)", type: "tags" },
-      { name: "published", label: "Published Status", type: "boolean" },
+      {
+        name: "title",
+        label: "Judul Artikel",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Menghadapi Traffic Spike dengan Zero-Downtime Migration",
+        helper: "Judul utama artikel.",
+      },
+      {
+        name: "slug",
+        label: "Slug URL",
+        type: "text",
+        required: true,
+        placeholder: "e.g. zero-downtime-migration",
+        helper: "URL artikel di /news/[slug].",
+      },
+      {
+        name: "cover_image",
+        label: "Gambar Sampul (Cover Image)",
+        type: "image",
+        helper: "Upload gambar sampul untuk artikel ini.",
+      },
+      {
+        name: "category",
+        label: "Kategori Artikel",
+        type: "chip_select",
+        options: [
+          { label: "Architecture", value: "Architecture" },
+          { label: "Engineering", value: "Engineering" },
+          { label: "Devlog", value: "Devlog" },
+          { label: "Milestone", value: "Milestone" },
+        ],
+        helper: "Klasifikasi topik artikel.",
+      },
+      {
+        name: "read_time",
+        label: "Waktu Baca",
+        type: "text",
+        placeholder: "e.g. 5 min read",
+        helper: "Perkiraan waktu membaca.",
+      },
+      {
+        name: "excerpt",
+        label: "Ringkasan Singkat (Excerpt)",
+        type: "textarea",
+        required: true,
+        placeholder: "Rangkuman 2-3 kalimat mengenai isi artikel...",
+        helper: "Akan tampil di kartu artikel dan meta SEO preview.",
+      },
+      {
+        name: "tags",
+        label: "Tags",
+        type: "tags",
+        placeholder: "e.g. Architecture, Golang, DevOps",
+        helper: "Pisahkan dengan koma.",
+      },
+      {
+        name: "content",
+        label: "Isi Konten Artikel (Markdown)",
+        type: "markdown",
+        helper: "Tulis konten lengkap menggunakan editor Markdown.",
+      },
+      {
+        name: "published",
+        label: "Status Publikasi",
+        type: "boolean",
+        helper: "Aktifkan agar artikel langsung live di website.",
+      },
     ],
   },
   {
-    key: "experiences",
-    label: "Experience",
-    icon: Briefcase,
-    singular: "Experience",
+    key: "projects",
+    label: "Projects Showcase",
+    singular: "Project",
+    icon: Layers,
+    description: "Karya unggulan, studi kasus arsitektur, dan implementasi",
     fields: [
-      { name: "role", label: "Job Role", type: "text", required: true },
-      { name: "company", label: "Company Name", type: "text", required: true },
-      { name: "brand", label: "Brand / Work Type (e.g. Nexmedis · Full-time)", type: "text", required: true },
-      { name: "period", label: "Period (e.g. MAR 2025 — APR 2026)", type: "text", required: true },
-      { name: "detail", label: "Job Details & Achievements", type: "textarea", required: true },
-      { name: "tags", label: "Tech Stack Tags (comma-separated)", type: "tags" },
-      { name: "url", label: "Company Website URL", type: "text" },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "title",
+        label: "Nama Project",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Nexmedis Healthcare AI Platform",
+        helper: "Nama project utama.",
+      },
+      {
+        name: "slug",
+        label: "Slug URL",
+        type: "text",
+        required: true,
+        placeholder: "e.g. nexmedis-healthcare-ai",
+        helper: "Identitas URL project.",
+      },
+      {
+        name: "tagline",
+        label: "Tagline Singkat",
+        type: "text",
+        placeholder: "e.g. Electronic Health Record Platform with Real-time AI Scribe",
+        helper: "Penjelasan ringkas 1 baris.",
+      },
+      {
+        name: "image_url",
+        label: "Gambar Screenshot / Mockup",
+        type: "image",
+        helper: "Visual project yang akan tampil di grid portofolio.",
+      },
+      {
+        name: "category",
+        label: "Kategori Project",
+        type: "text",
+        placeholder: "e.g. Backend Architecture, Full Stack, Healthcare AI",
+        options: ["Backend Architecture", "Full Stack", "Distributed Systems", "Healthcare AI"],
+        helper: "Kategori spesialisasi.",
+      },
+      {
+        name: "tags",
+        label: "Tech Stack Tags",
+        type: "tags",
+        placeholder: "e.g. Next.js, Golang, RabbitMQ, PostgreSQL, Docker",
+        helper: "Pisahkan dengan koma.",
+      },
+      {
+        name: "demo_url",
+        label: "URL Demo / Live Website",
+        type: "text",
+        placeholder: "https://...",
+        helper: "Tautan ke situs produksi atau staging.",
+      },
+      {
+        name: "github_url",
+        label: "URL Repository GitHub",
+        type: "text",
+        placeholder: "https://github.com/...",
+        helper: "Tautan ke kode sumber (jika open source / public).",
+      },
+      {
+        name: "metrics",
+        label: "Highlight Metrik / Pencapaian",
+        type: "text",
+        placeholder: "e.g. -35% Latency, 99.9% Uptime, 10k+ MAU",
+        helper: "Pencapaian terukur yang menonjolkan dampak engineering Anda.",
+      },
+      {
+        name: "featured",
+        label: "Featured di Halaman Utama",
+        type: "boolean",
+        helper: "Tampilkan di baris teratas beranda sebagai project utama.",
+      },
+      {
+        name: "description",
+        label: "Studi Kasus Lengkap (Markdown)",
+        type: "markdown",
+        required: true,
+        helper: "Ceritakan arsitektur, tantangan, dan solusi teknis yang Anda terapkan.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Nomor urut (1 tampil terdepan).",
+      },
     ],
   },
   {
-    key: "educations",
-    label: "Education",
-    icon: GraduationCap,
-    singular: "Education",
+    key: "products",
+    label: "Products & SaaS",
+    singular: "Produk",
+    icon: Boxes,
+    description: "Koleksi tools, library, dan produk digital yang dirilis",
     fields: [
-      { name: "institution", label: "Institution", type: "text", required: true },
-      { name: "degree", label: "Degree / Program", type: "text", required: true },
-      { name: "period", label: "Period (e.g. Jan 2020 — Dec 2024)", type: "text", required: true },
-      { name: "detail", label: "Specialization & Notes", type: "textarea" },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "name",
+        label: "Nama Produk",
+        type: "text",
+        required: true,
+        placeholder: "e.g. GopherMQ Studio",
+        helper: "Nama resmi produk atau tools.",
+      },
+      {
+        name: "slug",
+        label: "Slug URL",
+        type: "text",
+        required: true,
+        placeholder: "e.g. gophermq-studio",
+        helper: "URL identitas produk.",
+      },
+      {
+        name: "headline",
+        label: "Headline / Value Proposition",
+        type: "text",
+        required: true,
+        placeholder: "e.g. High-throughput RabbitMQ message visualizer & load simulator",
+        helper: "Pernyataan nilai produk untuk pengguna.",
+      },
+      {
+        name: "status",
+        label: "Status Produk",
+        type: "chip_select",
+        options: [
+          { label: "🟢 Live", value: "Live" },
+          { label: "⚡ Beta", value: "Beta" },
+          { label: "🛠️ In Development", value: "In Development" },
+          { label: "💡 Concept", value: "Concept" },
+        ],
+        helper: "Kondisi tahap pengembangan saat ini.",
+      },
+      {
+        name: "pricing_type",
+        label: "Model Distribusi / Harga",
+        type: "chip_select",
+        options: [
+          { label: "Open Source", value: "Open Source" },
+          { label: "Free", value: "Free" },
+          { label: "Freemium", value: "Freemium" },
+          { label: "Commercial", value: "Commercial" },
+        ],
+        helper: "Lisensi atau model bisnis.",
+      },
+      {
+        name: "badge",
+        label: "Badge Label",
+        type: "text",
+        placeholder: "e.g. v1.2, Popular, Trending",
+        helper: "Label pemanis di sudut kartu.",
+      },
+      {
+        name: "icon_name",
+        label: "Nama Icon",
+        type: "text",
+        placeholder: "e.g. Network, Cpu, Layers3, Boxes",
+        helper: "Nama icon visual.",
+      },
+      {
+        name: "product_url",
+        label: "URL Website Produk",
+        type: "text",
+        placeholder: "https://...",
+        helper: "Link ke halaman web produk.",
+      },
+      {
+        name: "github_url",
+        label: "URL GitHub Repository",
+        type: "text",
+        placeholder: "https://github.com/...",
+        helper: "Link ke repo open-source.",
+      },
+      {
+        name: "description",
+        label: "Deskripsi Produk",
+        type: "textarea",
+        required: true,
+        placeholder: "Jelaskan fitur-fitur utama dan kapabilitas produk...",
+        helper: "Deskripsi mendalam mengenai keunggulan produk.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Nomor urut tampil.",
+      },
     ],
   },
   {
     key: "stacks",
     label: "Tech Stacks",
-    icon: Layers,
     singular: "Tech Stack",
+    icon: Layers,
+    description: "Kelompok keahlian teknologi dan arsitektur sistem",
     fields: [
-      { name: "title", label: "Category Title (e.g. Backend engineering)", type: "text", required: true },
-      { name: "icon_name", label: "Icon Name (ServerCog, Braces, Network, Database, Workflow)", type: "text" },
-      { name: "note", label: "Description Note", type: "textarea", required: true },
-      { name: "tags", label: "Technologies (comma-separated)", type: "tags" },
-      { name: "grid_span", label: "Grid Span (e.g. lg:col-span-3, lg:col-span-2)", type: "text" },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "title",
+        label: "Kategori Keahlian",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Backend Engineering & Microservices",
+        helper: "Nama pilar kompetensi teknis.",
+      },
+      {
+        name: "icon_name",
+        label: "Nama Icon",
+        type: "text",
+        placeholder: "ServerCog, Braces, Network, Database, Workflow",
+        helper: "Icon visual pilar ini.",
+      },
+      {
+        name: "note",
+        label: "Deskripsi Catatan",
+        type: "textarea",
+        required: true,
+        placeholder: "Pengalaman mendalam membangun layanan skala besar...",
+        helper: "Penjelasan ringkas kapabilitas pada pilar ini.",
+      },
+      {
+        name: "tags",
+        label: "Daftar Teknologi",
+        type: "tags",
+        placeholder: "e.g. Golang, PostgreSQL, Redis, RabbitMQ, Docker, Kubernetes",
+        helper: "Pisahkan dengan koma.",
+      },
+      {
+        name: "grid_span",
+        label: "Ukuran Grid Layout",
+        type: "text",
+        placeholder: "e.g. lg:col-span-3 atau lg:col-span-2",
+        helper: "Ukuran lebar kolom di tampilan grid beranda.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Nomor urut tampil.",
+      },
+    ],
+  },
+  {
+    key: "experiences",
+    label: "Work Experience",
+    singular: "Pengalaman Kerja",
+    icon: Briefcase,
+    description: "Riwayat karir profesional dan kontribusi engineering",
+    fields: [
+      {
+        name: "role",
+        label: "Posisi / Jabatan",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Senior Backend Engineer",
+        helper: "Nama peran atau posisi kerja.",
+      },
+      {
+        name: "company",
+        label: "Nama Perusahaan",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Nexmedis",
+        helper: "Nama instansi/perusahaan tempat Anda berkarya.",
+      },
+      {
+        name: "brand",
+        label: "Tipe Pekerjaan",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Nexmedis · Full-time",
+        helper: "Format label brand & tipe komitmen.",
+      },
+      {
+        name: "period",
+        label: "Periode Waktu",
+        type: "text",
+        required: true,
+        placeholder: "e.g. MAR 2025 — PRESENT",
+        helper: "Masa kerja dari bulan/tahun awal hingga selesai.",
+      },
+      {
+        name: "url",
+        label: "Website Perusahaan",
+        type: "text",
+        placeholder: "https://...",
+        helper: "Link ke situs perusahaan.",
+      },
+      {
+        name: "detail",
+        label: "Detail Pekerjaan & Pencapaian",
+        type: "textarea",
+        required: true,
+        placeholder: "Memimpin arsitektur sistem pesan distributed event-driven...",
+        helper: "Pencapaian utama dan sistem yang Anda bangun.",
+      },
+      {
+        name: "tags",
+        label: "Tech Stack yang Digunakan",
+        type: "tags",
+        placeholder: "e.g. Golang, RabbitMQ, Docker, Kubernetes",
+        helper: "Pisahkan dengan koma.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Urutan kronologis (1 untuk posisi terbaru).",
+      },
+    ],
+  },
+  {
+    key: "educations",
+    label: "Education History",
+    singular: "Riwayat Pendidikan",
+    icon: GraduationCap,
+    description: "Latar belakang akademik dan sertifikasi formal",
+    fields: [
+      {
+        name: "institution",
+        label: "Institusi / Universitas",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Universitas Indonesia",
+        helper: "Nama universitas atau akademi.",
+      },
+      {
+        name: "degree",
+        label: "Gelar / Program Studi",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Bachelor of Computer Science (S.Kom)",
+        helper: "Tingkat pendidikan dan jurusan.",
+      },
+      {
+        name: "period",
+        label: "Periode Studi",
+        type: "text",
+        required: true,
+        placeholder: "e.g. 2020 — 2024",
+        helper: "Tahun awal hingga kelulusan.",
+      },
+      {
+        name: "detail",
+        label: "Fokus Studi & Catatan",
+        type: "textarea",
+        placeholder: "Konsentrasi pada Rekayasa Perangkat Lunak dan Sistem Terdistribusi...",
+        helper: "Pencapaian akademik, IPK, atau fokus riset.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Nomor urut tampil.",
+      },
     ],
   },
   {
     key: "impact",
     label: "Impact Metrics",
+    singular: "Metrik Dampak",
     icon: TrendingUp,
-    singular: "Metric",
+    description: "Statistik dampak nyata dan pembuktian performa sistem",
     fields: [
-      { name: "metric", label: "Metric Stat (e.g. +70%, -35%)", type: "text", required: true },
-      { name: "title", label: "Metric Title", type: "text", required: true },
-      { name: "detail", label: "Context Detail", type: "textarea", required: true },
-      { name: "order_index", label: "Display Order", type: "number" },
+      {
+        name: "metric",
+        label: "Angka Metrik",
+        type: "text",
+        required: true,
+        placeholder: "e.g. -35%, +70%, 99.99%",
+        helper: "Angka kuantitatif yang mencolok.",
+      },
+      {
+        name: "title",
+        label: "Judul Pencapaian",
+        type: "text",
+        required: true,
+        placeholder: "e.g. Latency Reduction in Event Broker",
+        helper: "Satu kalimat penjelas apa yang berhasil dicapai.",
+      },
+      {
+        name: "detail",
+        label: "Keterangan Konteks",
+        type: "textarea",
+        required: true,
+        placeholder: "Dioptimalkan melalui implementasi concurrent connection pooling...",
+        helper: "Penjelasan teknis bagaimana angka tersebut diraih.",
+      },
+      {
+        name: "order_index",
+        label: "Urutan Tampil",
+        type: "number",
+        helper: "Urutan posisi kartu metrik.",
+      },
     ],
   },
 ];
@@ -212,17 +867,28 @@ export default function AdminPage() {
   const [adminKey, setAdminKey] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [inputKey, setInputKey] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<TabKey>("projects");
+  const [activeTab, setActiveTab] = useState<TabKey>("courses");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isOpenMobile, setIsOpenMobile] = useState<boolean>(false);
 
-  // Modal State
+  // Cached relational data for courses and modules dropdowns
+  const [allCourses, setAllCourses] = useState<any[]>([]);
+  const [allModules, setAllModules] = useState<any[]>([]);
+  const [entityCounts, setEntityCounts] = useState<Partial<Record<TabKey, number>>>({});
+
+  // Modal / Drawer State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [activeFormTab, setActiveFormTab] = useState<"meta" | "markdown">("meta");
   const [saving, setSaving] = useState<boolean>(false);
+
+  // Quick copy feedback
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("refa_admin_key");
@@ -235,6 +901,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchItems();
+      fetchTutorialRelations();
     }
   }, [isAuthenticated, activeTab]);
 
@@ -249,7 +916,7 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || "Login gagal");
       }
       localStorage.setItem("refa_admin_key", inputKey);
       setAdminKey(inputKey);
@@ -265,6 +932,27 @@ export default function AdminPage() {
     setIsAuthenticated(false);
   };
 
+  // Fetch relations for Course and Module dropdowns
+  const fetchTutorialRelations = async () => {
+    if (!adminKey) return;
+    try {
+      const [resCourses, resModules] = await Promise.all([
+        fetch("/api/admin/courses", { headers: { "x-admin-key": adminKey } }),
+        fetch("/api/admin/modules", { headers: { "x-admin-key": adminKey } }),
+      ]);
+      if (resCourses.ok) {
+        const cData = await resCourses.json();
+        if (Array.isArray(cData)) setAllCourses(cData);
+      }
+      if (resModules.ok) {
+        const mData = await resModules.json();
+        if (Array.isArray(mData)) setAllModules(mData);
+      }
+    } catch {
+      // Ignore background relation load errors
+    }
+  };
+
   const fetchItems = async () => {
     setLoading(true);
     setError(null);
@@ -274,9 +962,11 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch items");
+        throw new Error(data.error || "Gagal memuat data dari database");
       }
-      setItems(Array.isArray(data) ? data : []);
+      const loaded = Array.isArray(data) ? data : [];
+      setItems(loaded);
+      setEntityCounts((prev) => ({ ...prev, [activeTab]: loaded.length }));
     } catch (err: any) {
       setError(err.message);
       setItems([]);
@@ -285,23 +975,70 @@ export default function AdminPage() {
     }
   };
 
-  const currentTabConfig = TABS.find((t) => t.key === activeTab)!;
+  const currentTabConfig = useMemo(() => {
+    return TABS.find((t) => t.key === activeTab) || TABS[0];
+  }, [activeTab]);
+
+  // Lookup maps to replace raw UUIDs with friendly readable titles
+  const courseMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allCourses.forEach((c) => map.set(c.id, c.title));
+    return map;
+  }, [allCourses]);
+
+  const moduleMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allModules.forEach((m) => map.set(m.id, m.title));
+    return map;
+  }, [allModules]);
+
+  // Has markdown field?
+  const hasMarkdownField = useMemo(() => {
+    return currentTabConfig.fields.some((f) => f.type === "markdown");
+  }, [currentTabConfig]);
 
   const openCreateModal = () => {
     setEditingItem(null);
+    setActiveFormTab("meta");
     const initial: Record<string, any> = {};
+
     currentTabConfig.fields.forEach((f) => {
-      if (f.type === "boolean") initial[f.name] = false;
-      else if (f.type === "number") initial[f.name] = (items.length + 1);
+      if (f.type === "boolean") initial[f.name] = true;
+      else if (f.type === "number") initial[f.name] = items.length + 1;
       else if (f.type === "tags") initial[f.name] = "";
-      else initial[f.name] = "";
+      else if (f.name === "type" && f.options && Array.isArray(f.options)) {
+        const firstOpt = f.options[0];
+        initial[f.name] = typeof firstOpt === "string" ? firstOpt : firstOpt.value;
+      } else if (f.name === "level") {
+        initial[f.name] = "Intermediate — Advanced";
+      } else if (f.name === "status") {
+        initial[f.name] = "Live";
+      } else if (f.name === "pricing_type") {
+        initial[f.name] = "Open Source";
+      } else {
+        initial[f.name] = "";
+      }
     });
+
+    // Default Course ID for modules and lessons to first available course
+    if (activeTab === "modules" && allCourses.length > 0) {
+      initial["course_id"] = allCourses[0].id;
+    }
+    if (activeTab === "lessons" && allCourses.length > 0) {
+      initial["course_id"] = allCourses[0].id;
+      const filteredMods = allModules.filter((m) => m.course_id === allCourses[0].id);
+      if (filteredMods.length > 0) {
+        initial["module_id"] = filteredMods[0].id;
+      }
+    }
+
     setFormData(initial);
     setIsModalOpen(true);
   };
 
   const openEditModal = (item: any) => {
     setEditingItem(item);
+    setActiveFormTab("meta");
     const formatted: Record<string, any> = { ...item };
     currentTabConfig.fields.forEach((f) => {
       if (f.type === "tags" && Array.isArray(item[f.name])) {
@@ -313,7 +1050,7 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id: string, title?: string) => {
-    if (!confirm(`Are you sure you want to delete ${title ? `"${title}"` : "this item"}?`)) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${title ? `"${title}"` : "item ini"}?`)) {
       return;
     }
     setError(null);
@@ -324,11 +1061,12 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Delete failed");
+        throw new Error(data.error || "Gagal menghapus");
       }
-      setSuccessMsg("Deleted successfully!");
-      setTimeout(() => setSuccessMsg(null), 3000);
+      setSuccessMsg("Berhasil dihapus dari PostgreSQL!");
+      setTimeout(() => setSuccessMsg(null), 3500);
       fetchItems();
+      fetchTutorialRelations();
     } catch (err: any) {
       setError(err.message);
     }
@@ -343,15 +1081,21 @@ export default function AdminPage() {
     currentTabConfig.fields.forEach((f) => {
       const val = formData[f.name];
       if (f.type === "tags") {
-        payload[f.name] = typeof val === "string"
-          ? val.split(",").map((s) => s.trim()).filter(Boolean)
-          : Array.isArray(val) ? val : [];
+        payload[f.name] =
+          typeof val === "string"
+            ? val
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : Array.isArray(val)
+            ? val
+            : [];
       } else if (f.type === "number") {
         payload[f.name] = val !== "" && !isNaN(Number(val)) ? Number(val) : 0;
       } else if (f.type === "boolean") {
         payload[f.name] = Boolean(val);
       } else {
-        payload[f.name] = val || null;
+        payload[f.name] = val !== undefined && val !== "" ? val : null;
       }
     });
 
@@ -372,13 +1116,16 @@ export default function AdminPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || "Gagal menyimpan perubahan");
       }
 
-      setSuccessMsg(editingItem ? "Updated successfully!" : "Created successfully!");
-      setTimeout(() => setSuccessMsg(null), 3000);
+      setSuccessMsg(
+        editingItem ? "Berhasil diperbarui di database!" : "Berhasil ditambahkan ke database!"
+      );
+      setTimeout(() => setSuccessMsg(null), 3500);
       setIsModalOpen(false);
       fetchItems();
+      fetchTutorialRelations();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -386,22 +1133,51 @@ export default function AdminPage() {
     }
   };
 
-  // Auth gate render
+  // Client-side quick search filter
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.toLowerCase().trim();
+    return items.filter((item) => {
+      const textToMatch = [
+        item.title,
+        item.name,
+        item.slug,
+        item.role,
+        item.institution,
+        item.metric,
+        item.tagline,
+        item.headline,
+        item.category,
+        item.type,
+        courseMap.get(item.course_id),
+        moduleMap.get(item.module_id),
+        ...(Array.isArray(item.tags) ? item.tags : []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return textToMatch.includes(q);
+    });
+  }, [items, searchQuery, courseMap, moduleMap]);
+
+  // Auth Gate
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0b1020] px-4">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl text-white shadow-2xl">
+      <div className="flex min-h-screen items-center justify-center bg-[#070b15] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/90 p-8 backdrop-blur-2xl text-white shadow-2xl">
           <div className="flex flex-col items-center text-center mb-6">
-            <Image
-              src="/logo-light.png"
-              alt="mrefawm"
-              width={160}
-              height={53}
-              priority
-              className="h-10 w-auto object-contain mb-3"
-            />
-            <h1 className="text-lg font-bold tracking-tight text-white">Portfolio Admin Portal</h1>
-            <p className="text-xs text-white/50 mt-0.5">Dokploy PostgreSQL Content Management System</p>
+            <div className="relative mb-3">
+              <Image
+                src="/logo-light.png"
+                alt="mrefawm"
+                width={150}
+                height={50}
+                priority
+                className="h-9 w-auto object-contain"
+              />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-white">Admin Management Portal</h1>
+            <p className="text-xs text-slate-400 mt-1">Dokploy PostgreSQL Hybrid Content Engine</p>
           </div>
 
           {error && (
@@ -412,27 +1188,30 @@ export default function AdminPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider text-white/60 mb-1.5 font-medium">
+              <label className="block text-xs uppercase tracking-wider text-slate-300 mb-1.5 font-bold">
                 Admin Secret Key
               </label>
               <input
                 type="password"
-                placeholder="e.g. refa-admin-2026"
+                placeholder="Masukkan kode rahasia admin..."
                 value={inputKey}
                 onChange={(e) => setInputKey(e.target.value)}
                 required
-                className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
               />
             </div>
             <button
               type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition hover:brightness-110 active:scale-[0.98]"
             >
-              Sign In to Admin
+              Buka Dashboard Admin
             </button>
             <div className="text-center pt-2">
-              <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-cyan-300 hover:underline">
-                <ArrowLeft size={13} /> Back to Portfolio
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:underline"
+              >
+                <ArrowLeft size={13} /> Kembali ke Portofolio
               </Link>
             </div>
           </form>
@@ -443,347 +1222,822 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800">
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-6 backdrop-blur">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-3 transition hover:opacity-85">
-            <Image
-              src="/logo-dark.png"
-              alt="mrefawm"
-              width={120}
-              height={40}
-              className="h-7 w-auto object-contain"
-            />
-            <span className="text-blue-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200">Admin</span>
-          </Link>
-          <span className="hidden sm:inline text-xs text-slate-400">|</span>
-          <Link href="/" target="_blank" className="hidden sm:inline-flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition">
-            View Live Site <ExternalLink size={12} />
-          </Link>
-        </div>
+      {/* SIDEBAR NAVIGATION */}
+      <AdminSidebar
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setSearchQuery("");
+        }}
+        counts={entityCounts}
+        onLogout={handleLogout}
+        isOpenMobile={isOpenMobile}
+        onCloseMobile={() => setIsOpenMobile(false)}
+      />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchItems}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-          >
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </button>
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
-          >
-            <LogOut size={13} /> Logout
-          </button>
-        </div>
-      </header>
+      {/* MAIN CONTENT AREA */}
+      <div className="lg:pl-64 xl:pl-72 flex flex-col min-h-screen">
+        {/* Top Header Navbar */}
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 sm:px-8 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsOpenMobile(true)}
+              className="lg:hidden grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+              title="Buka Menu"
+            >
+              <Menu size={18} />
+            </button>
 
-      {/* Main Container */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Alerts */}
-        {error && (
-          <div className="mb-6 flex items-center justify-between rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-            <div className="flex items-center gap-2"><AlertCircle size={18} /> {error}</div>
-            <button onClick={() => setError(null)} className="text-red-500 font-bold">✕</button>
-          </div>
-        )}
-        {successMsg && (
-          <div className="mb-6 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">
-            <CheckCircle size={18} /> {successMsg}
-          </div>
-        )}
-
-        {/* Tab Selection */}
-        <div className="mb-8 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <Icon size={15} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Header Action & Stats */}
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <currentTabConfig.icon className="text-blue-600" size={24} />
-              {currentTabConfig.label} Management
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Currently showing {items.length} {currentTabConfig.label.toLowerCase()} stored in PostgreSQL.
-            </p>
-          </div>
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:brightness-105"
-          >
-            <Plus size={16} /> Add New {currentTabConfig.singular}
-          </button>
-        </div>
-
-        {/* Table / List View */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {loading ? (
-            <div className="p-12 text-center text-sm text-slate-400 animate-pulse">
-              Loading {currentTabConfig.label}...
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-slate-400 hidden sm:inline">Admin Portal</span>
+              <span className="text-slate-300 hidden sm:inline">/</span>
+              <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                <currentTabConfig.icon size={15} className="text-blue-600" />
+                {currentTabConfig.label}
+              </span>
             </div>
-          ) : items.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="text-sm font-semibold text-slate-600">No {currentTabConfig.label.toLowerCase()} found.</p>
-              <p className="text-xs text-slate-400 mt-1">Click &quot;Add New {currentTabConfig.singular}&quot; to create your first record.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-6 py-4">Title / Primary</th>
-                    <th className="px-6 py-4">Key Info</th>
-                    <th className="px-6 py-4">Tags / Meta</th>
-                    <th className="px-6 py-4 text-center">Order</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {items.map((item) => {
-                    const primaryTitle = item.title || item.name || item.role || item.institution || item.metric || "Untitled";
-                    const subtitle = item.tagline || item.headline || item.description || item.company || item.degree || item.note || item.excerpt || "";
-                    const tags = item.tags || (item.category ? [item.category] : []);
+          </div>
 
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-50/80 transition">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            {(item.cover_image || item.image_url) && (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={item.cover_image || item.image_url}
-                                alt={primaryTitle}
-                                className="h-10 w-12 shrink-0 rounded-lg object-cover border border-slate-200 shadow-xs"
-                              />
-                            )}
-                            <div>
-                              <div className="font-bold text-slate-900 text-sm">{primaryTitle}</div>
-                              {subtitle && <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-sm">{subtitle}</div>}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-xs text-slate-600 font-medium">
-                            {item.type || item.brand || item.period || item.pricing_type || item.read_time || item.slug || "-"}
-                          </div>
-                          {item.metrics && (
-                            <span className="inline-block mt-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">
-                              {item.metrics}
-                            </span>
-                          )}
-                          {item.featured && (
-                            <span className="inline-block ml-1 mt-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px]">
-                              ★ Featured
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1 max-w-xs">
-                            {Array.isArray(tags) && tags.slice(0, 4).map((tg: string) => (
-                              <span key={tg} className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-semibold">
-                                {tg}
-                              </span>
-                            ))}
-                            {Array.isArray(tags) && tags.length > 4 && (
-                              <span className="text-[10px] text-slate-400">+{tags.length - 4} more</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center font-mono text-xs text-slate-500">
-                          {item.order_index ?? "-"}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              onClick={() => openEditModal(item)}
-                              className="rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition"
-                              title="Edit item"
-                            >
-                              <Edit2 size={15} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id, primaryTitle)}
-                              className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
-                              title="Delete item"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={fetchItems}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs disabled:opacity-60"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin text-blue-600" : ""} />
+              <span className="hidden sm:inline">Refresh Data</span>
+            </button>
 
-      {/* CREATE / EDIT MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {editingItem ? `Edit ${currentTabConfig.singular}` : `Add New ${currentTabConfig.singular}`}
-                </h3>
-                <p className="text-xs text-slate-400">Fill in the fields below to update PostgreSQL database.</p>
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:brightness-105 active:scale-95"
+            >
+              <Plus size={15} />
+              <span>Tambah {currentTabConfig.singular}</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Content Body */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          {/* Notifications */}
+          {error && (
+            <div className="mb-6 flex items-center justify-between rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm text-rose-700 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle size={18} className="shrink-0 text-rose-600" />
+                <span>{error}</span>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition"
+                onClick={() => setError(null)}
+                className="grid h-6 w-6 place-items-center rounded-md text-rose-400 hover:text-rose-700"
               >
                 ✕
               </button>
             </div>
+          )}
 
-            <form onSubmit={handleSave} className="space-y-5">
-              {currentTabConfig.fields.map((field) => {
-                if (field.type === "markdown") {
-                  return (
-                    <div key={field.name}>
-                      <MarkdownEditor
-                        value={formData[field.name] || ""}
-                        onChange={(val) => setFormData({ ...formData, [field.name]: val })}
-                        label={field.label}
-                        required={field.required}
-                        adminKey={adminKey}
-                        currentCoverUrl={formData["cover_image"] || formData["image_url"]}
-                        onSetCover={(url) => {
-                          const coverKey = activeTab === "news" ? "cover_image" : "image_url";
-                          setFormData((prev) => ({ ...prev, [coverKey]: url }));
-                        }}
-                      />
-                    </div>
-                  );
-                }
+          {successMsg && (
+            <div className="mb-6 flex items-center gap-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs sm:text-sm text-emerald-800 shadow-xs animate-in fade-in">
+              <CheckCircle size={18} className="shrink-0 text-emerald-600" />
+              <span className="font-medium">{successMsg}</span>
+            </div>
+          )}
 
-                if (field.type === "image") {
-                  return (
-                    <div key={field.name} className="space-y-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
-                      </label>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        {formData[field.name] && (
-                          <div className="relative group shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={formData[field.name]}
-                              alt="Preview"
-                              className="h-16 w-24 rounded-xl object-cover border border-slate-200 shadow-xs"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setFormData({ ...formData, [field.name]: "" })}
-                              className="absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white shadow-xs hover:bg-red-600 transition"
-                              title="Remove image"
-                            >
-                              <X size={11} />
-                            </button>
-                          </div>
+          {/* Header Banner & Live Search */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                  {currentTabConfig.label}
+                </h1>
+                <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60 font-mono">
+                  {items.length} item
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">{currentTabConfig.description}</p>
+            </div>
+
+            {/* Quick Search Bar */}
+            <div className="relative w-full sm:w-72">
+              <Search
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                placeholder={`Cari di ${currentTabConfig.label.toLowerCase()}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Items Table Card */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {loading ? (
+              <div className="p-16 text-center space-y-3">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+                <p className="text-xs font-semibold text-slate-500">
+                  Memuat data {currentTabConfig.label}...
+                </p>
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="p-16 text-center">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
+                  <currentTabConfig.icon size={22} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  {searchQuery
+                    ? `Tidak ada hasil untuk "${searchQuery}"`
+                    : `Belum ada ${currentTabConfig.singular}`}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                  {searchQuery
+                    ? "Coba gunakan kata kunci pencarian yang lain atau bersihkan kotak pencarian."
+                    : `Klik tombol "Tambah ${currentTabConfig.singular}" di kanan atas untuk membuat rekaman data baru.`}
+                </p>
+                {searchQuery ? (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    Reset Pencarian
+                  </button>
+                ) : (
+                  <button
+                    onClick={openCreateModal}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
+                  >
+                    <Plus size={14} /> Tambah {currentTabConfig.singular} Pertama
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-6 py-4">Judul / Entitas Utama</th>
+                      <th className="px-6 py-4">Kategori & Relasi</th>
+                      <th className="px-6 py-4">Tags & Atribut</th>
+                      <th className="px-6 py-4 text-center">Urutan</th>
+                      <th className="px-6 py-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredItems.map((item) => {
+                      const primaryTitle =
+                        item.title ||
+                        item.name ||
+                        item.role ||
+                        item.institution ||
+                        item.metric ||
+                        "Tanpa Judul";
+                      const subtitle =
+                        item.tagline ||
+                        item.headline ||
+                        item.description ||
+                        item.company ||
+                        item.degree ||
+                        item.note ||
+                        item.excerpt ||
+                        "";
+                      const tags = item.tags || (item.category ? [item.category] : []);
+
+                      // Friendly relation info
+                      const relatedCourseTitle = item.course_id
+                        ? courseMap.get(item.course_id)
+                        : null;
+                      const relatedModuleTitle = item.module_id
+                        ? moduleMap.get(item.module_id)
+                        : null;
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition group">
+                          {/* Col 1: Primary Title + Image/Slug */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-start gap-3">
+                              {(item.cover_image || item.image_url) && (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={item.cover_image || item.image_url}
+                                  alt={primaryTitle}
+                                  className="h-11 w-14 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs mt-0.5"
+                                />
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 text-sm leading-snug line-clamp-1">
+                                  {primaryTitle}
+                                </div>
+                                {subtitle && (
+                                  <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-md">
+                                    {subtitle}
+                                  </div>
+                                )}
+                                {item.slug && (
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                                      /{item.slug}
+                                    </span>
+                                    {activeTab === "courses" && (
+                                      <Link
+                                        href={`/tutorials/${item.slug}`}
+                                        target="_blank"
+                                        className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                                      >
+                                        Live <ExternalLink size={9} />
+                                      </Link>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Col 2: Relasi & Kategori */}
+                          <td className="px-6 py-4">
+                            <div className="space-y-1 max-w-xs">
+                              {/* Display friendly Course & Module badges instead of raw UUIDs */}
+                              {relatedCourseTitle && (
+                                <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-lg">
+                                  <BookOpen size={10} className="shrink-0 text-blue-600" />
+                                  <span className="truncate">{relatedCourseTitle}</span>
+                                </div>
+                              )}
+                              {relatedModuleTitle && (
+                                <div className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg ml-0.5">
+                                  <FolderGit2 size={10} className="shrink-0 text-slate-500" />
+                                  <span className="truncate">{relatedModuleTitle}</span>
+                                </div>
+                              )}
+
+                              {!relatedCourseTitle && !relatedModuleTitle && (
+                                <div className="text-xs text-slate-600 font-medium">
+                                  {item.type ||
+                                    item.brand ||
+                                    item.period ||
+                                    item.pricing_type ||
+                                    item.read_time ||
+                                    item.category ||
+                                    "-"}
+                                </div>
+                              )}
+
+                              {item.level && (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[10px] border border-indigo-100">
+                                  {item.level}
+                                </span>
+                              )}
+                              {item.status && (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[10px] border border-emerald-100">
+                                  ● {item.status}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Col 3: Tags & Atribut */}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {Array.isArray(tags) &&
+                                tags.slice(0, 3).map((tg: string) => (
+                                  <span
+                                    key={tg}
+                                    className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-semibold border border-slate-200/50"
+                                  >
+                                    {tg}
+                                  </span>
+                                ))}
+                              {Array.isArray(tags) && tags.length > 3 && (
+                                <span className="text-[10px] text-slate-400 self-center">
+                                  +{tags.length - 3}
+                                </span>
+                              )}
+                              {item.published === false && (
+                                <span className="rounded-md bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
+                                  Draft
+                                </span>
+                              )}
+                              {item.featured && (
+                                <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                                  ★ Featured
+                                </span>
+                              )}
+                              {item.metrics && (
+                                <span className="rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-bold">
+                                  {item.metrics}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Col 4: Order Index */}
+                          <td className="px-6 py-4 text-center font-mono text-xs text-slate-500 font-bold">
+                            #{item.order_index ?? "-"}
+                          </td>
+
+                          {/* Col 5: Actions */}
+                          <td className="px-6 py-4 text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                onClick={() => openEditModal(item)}
+                                className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition"
+                                title="Edit data"
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(item.id, primaryTitle)}
+                                className="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                                title="Hapus data"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* FRIENDLY SLIDE-OVER DRAWER / WIDE MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/60 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="h-full sm:h-[95vh] w-full max-w-5xl flex flex-col rounded-none sm:rounded-3xl bg-white shadow-2xl overflow-hidden border border-slate-200">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/80">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm">
+                  <currentTabConfig.icon size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 leading-snug">
+                    {editingItem
+                      ? `Edit ${currentTabConfig.singular}`
+                      : `Tambah ${currentTabConfig.singular} Baru`}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Perubahan akan disimpan langsung ke database PostgreSQL Dokploy.
+                  </p>
+                </div>
+              </div>
+
+              {/* Tab Navigation inside Drawer if has Markdown */}
+              <div className="flex items-center gap-2">
+                {hasMarkdownField && (
+                  <div className="flex rounded-xl bg-slate-200/70 p-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setActiveFormTab("meta")}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                        activeFormTab === "meta"
+                          ? "bg-white text-blue-600 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      <Settings2 size={13} /> Informasi & Pengaturan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveFormTab("markdown")}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                        activeFormTab === "markdown"
+                          ? "bg-white text-blue-600 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      <FileText size={13} /> Konten Markdown
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="grid h-8 w-8 place-items-center rounded-full bg-slate-200/60 text-slate-500 hover:bg-slate-300 transition"
+                  title="Tutup Form"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Drawer Body (Scrollable Form) */}
+            <form onSubmit={handleSave} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+                {/* RENDER FIELDS */}
+                {currentTabConfig.fields.map((field) => {
+                  // If hasMarkdown and we are in meta tab, hide markdown field
+                  if (field.type === "markdown" && activeFormTab === "meta") {
+                    return null;
+                  }
+                  // If hasMarkdown and we are in markdown tab, only show markdown field
+                  if (field.type !== "markdown" && activeFormTab === "markdown") {
+                    return null;
+                  }
+
+                  // 1. MARKDOWN EDITOR FIELD
+                  if (field.type === "markdown") {
+                    return (
+                      <div key={field.name} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1">
+                            {field.label} {field.required && <span className="text-red-500">*</span>}
+                          </label>
+                          {field.helper && (
+                            <span className="text-xs text-slate-400">{field.helper}</span>
+                          )}
+                        </div>
+                        <MarkdownEditor
+                          value={formData[field.name] || ""}
+                          onChange={(val) => setFormData({ ...formData, [field.name]: val })}
+                          label={field.label}
+                          required={field.required}
+                          adminKey={adminKey}
+                          minHeight="min-h-[420px]"
+                          currentCoverUrl={formData["cover_image"] || formData["image_url"]}
+                          onSetCover={(url) => {
+                            const coverKey = activeTab === "news" ? "cover_image" : "image_url";
+                            setFormData((prev) => ({ ...prev, [coverKey]: url }));
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+
+                  // 2. DYNAMIC RELATIONAL SELECT (Course & Module Dropdowns)
+                  if (field.name === "course_id") {
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <select
+                          value={formData["course_id"] || ""}
+                          onChange={(e) => {
+                            const newCourseId = e.target.value;
+                            setFormData((prev) => {
+                              const updated: Record<string, any> = { ...prev, course_id: newCourseId };
+                              // If on lessons tab, automatically reset or select the first module of the chosen course
+                              if (activeTab === "lessons") {
+                                const matchingMods = allModules.filter(
+                                  (m) => m.course_id === newCourseId
+                                );
+                                updated.module_id =
+                                  matchingMods.length > 0 ? matchingMods[0].id : "";
+                              }
+                              return updated;
+                            });
+                          }}
+                          required={field.required}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:border-blue-500 focus:bg-white focus:outline-none"
+                        >
+                          <option value="">-- Pilih Track Kursus --</option>
+                          {allCourses.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.title} ({c.slug})
+                            </option>
+                          ))}
+                        </select>
+                        {field.helper && (
+                          <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                            <HelpCircle size={11} className="text-blue-500" /> {field.helper}
+                          </p>
                         )}
-                        <div className="w-full flex-1">
-                          <input
-                            type="text"
-                            value={formData[field.name] ?? ""}
-                            onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                            placeholder="e.g. /uploads/image.png or paste direct URL"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                          />
+                      </div>
+                    );
+                  }
+
+                  if (field.name === "module_id") {
+                    const selectedCourseId = formData["course_id"];
+                    const availableModules = allModules.filter(
+                      (m) => m.course_id === selectedCourseId
+                    );
+
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <select
+                          value={formData["module_id"] || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, module_id: e.target.value })
+                          }
+                          required={field.required}
+                          disabled={!selectedCourseId}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:border-blue-500 focus:bg-white focus:outline-none disabled:opacity-50"
+                        >
+                          <option value="">
+                            {selectedCourseId
+                              ? availableModules.length > 0
+                                ? "-- Pilih Modul Bab --"
+                                : "Belum ada modul di kursus ini"
+                              : "-- Pilih Track Kursus terlebih dahulu --"}
+                          </option>
+                          {availableModules.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.title}
+                            </option>
+                          ))}
+                        </select>
+                        {field.helper && (
+                          <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                            <HelpCircle size={11} className="text-blue-500" /> {field.helper}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // 3. AUTO-SLUG GENERATION ON TITLE / NAME
+                  const isTitleField = field.name === "title" || field.name === "name";
+                  const isSlugField = field.name === "slug";
+
+                  if (isTitleField) {
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <input
+                          type="text"
+                          value={formData[field.name] ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData((prev) => {
+                              const updated = { ...prev, [field.name]: val };
+                              // Auto slug if creating new item or slug is empty
+                              if (!editingItem || !prev.slug) {
+                                updated.slug = slugify(val);
+                              }
+                              return updated;
+                            });
+                          }}
+                          required={field.required}
+                          placeholder={field.placeholder}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:border-blue-500 focus:bg-white focus:outline-none transition"
+                        />
+                        {field.helper && (
+                          <p className="text-[11px] text-slate-500">{field.helper}</p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (isSlugField) {
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            {field.label} {field.required && <span className="text-red-500">*</span>}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const title = formData.title || formData.name || "";
+                              setFormData((prev) => ({ ...prev, slug: slugify(title) }));
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 transition"
+                          >
+                            <RefreshCw size={10} /> Auto-Generate dari Judul
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={formData[field.name] ?? ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, [field.name]: slugify(e.target.value) })
+                          }
+                          required={field.required}
+                          placeholder={field.placeholder}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:border-blue-500 focus:bg-white focus:outline-none transition"
+                        />
+                        {field.helper && (
+                          <p className="text-[11px] text-slate-500">{field.helper}</p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // 4. CHIP SELECTORS (e.g. type, level, status, pricing_type)
+                  if (field.type === "chip_select" && field.options) {
+                    const currentVal = formData[field.name];
+                    return (
+                      <div key={field.name} className="space-y-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {field.options.map((opt: any) => {
+                            const val = typeof opt === "string" ? opt : opt.value;
+                            const lbl = typeof opt === "string" ? opt : opt.label;
+                            const isSelected = currentVal === val;
+                            return (
+                              <button
+                                key={val}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, [field.name]: val })}
+                                className={`rounded-xl px-3.5 py-2 text-xs font-bold transition border ${
+                                  isSelected
+                                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                                }`}
+                              >
+                                {lbl}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {field.helper && (
+                          <p className="text-[11px] text-slate-500">{field.helper}</p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // 5. IMAGE UPLOAD & PREVIEW
+                  if (field.type === "image") {
+                    return (
+                      <div key={field.name} className="space-y-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          {formData[field.name] && (
+                            <div className="relative group shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={formData[field.name]}
+                                alt="Preview"
+                                className="h-16 w-24 rounded-xl object-cover border border-slate-200 shadow-xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, [field.name]: "" })}
+                                className="absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white shadow-xs hover:bg-rose-600 transition"
+                                title="Hapus gambar"
+                              >
+                                <X size={11} />
+                              </button>
+                            </div>
+                          )}
+                          <div className="w-full flex-1">
+                            <input
+                              type="text"
+                              value={formData[field.name] ?? ""}
+                              onChange={(e) =>
+                                setFormData({ ...formData, [field.name]: e.target.value })
+                              }
+                              placeholder="e.g. /uploads/image.png atau paste URL gambar"
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none"
+                            />
+                            {field.helper && (
+                              <p className="text-[11px] text-slate-500 mt-1">{field.helper}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                }
+                    );
+                  }
 
-                if (field.type === "textarea") {
+                  // 6. TEXTAREA
+                  if (field.type === "textarea") {
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={formData[field.name] || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, [field.name]: e.target.value })
+                          }
+                          required={field.required}
+                          placeholder={field.placeholder}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none"
+                        />
+                        {field.helper && (
+                          <p className="text-[11px] text-slate-500">{field.helper}</p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // 7. BOOLEAN TOGGLE SWITCH
+                  if (field.type === "boolean") {
+                    const isChecked = Boolean(formData[field.name]);
+                    return (
+                      <div
+                        key={field.name}
+                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 p-3.5"
+                      >
+                        <div>
+                          <label
+                            htmlFor={field.name}
+                            className="text-xs font-bold text-slate-800 cursor-pointer"
+                          >
+                            {field.label}
+                          </label>
+                          {field.helper && (
+                            <p className="text-[11px] text-slate-500 mt-0.5">{field.helper}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, [field.name]: !isChecked })}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            isChecked ? "bg-emerald-500" : "bg-slate-300"
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                              isChecked ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // 8. STANDARD TEXT, NUMBER, OR TAGS
                   return (
-                    <div key={field.name}>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    <div key={field.name} className="space-y-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
                         {field.label} {field.required && <span className="text-red-500">*</span>}
                       </label>
-                      <textarea
-                        rows={3}
-                        value={formData[field.name] || ""}
-                        onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                        required={field.required}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                      />
-                    </div>
-                  );
-                }
-
-                if (field.type === "boolean") {
-                  return (
-                    <div key={field.name} className="flex items-center gap-3 py-1">
                       <input
-                        type="checkbox"
-                        id={field.name}
-                        checked={Boolean(formData[field.name])}
-                        onChange={(e) => setFormData({ ...formData, [field.name]: e.target.checked })}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        type={field.type === "number" ? "number" : "text"}
+                        value={formData[field.name] ?? ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, [field.name]: e.target.value })
+                        }
+                        required={field.required}
+                        placeholder={
+                          field.placeholder ||
+                          (field.type === "tags" ? "e.g. Next.js, Golang, RabbitMQ" : "")
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none transition"
                       />
-                      <label htmlFor={field.name} className="text-xs font-semibold text-slate-700">
-                        {field.label}
-                      </label>
+                      {field.helper && (
+                        <p className="text-[11px] text-slate-500">{field.helper}</p>
+                      )}
                     </div>
                   );
-                }
+                })}
+              </div>
 
-                return (
-                  <div key={field.name}>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                      {field.label} {field.required && <span className="text-red-500">*</span>}
-                    </label>
-                    <input
-                      type={field.type === "number" ? "number" : "text"}
-                      value={formData[field.name] ?? ""}
-                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      required={field.required}
-                      placeholder={field.type === "tags" ? "e.g. Next.js, Golang, RabbitMQ" : ""}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-                    />
-                  </div>
-                );
-              })}
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
+              {/* Drawer Footer Actions */}
+              <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
                 >
-                  Cancel
+                  Batal
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : editingItem ? "Update Changes" : "Save to Database"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {hasMarkdownField && activeFormTab === "meta" && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveFormTab("markdown")}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition"
+                    >
+                      <FileText size={14} /> Lanjut ke Editor Markdown →
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:brightness-105 disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" /> Menyimpan...
+                      </>
+                    ) : editingItem ? (
+                      "Perbarui Data"
+                    ) : (
+                      "Simpan ke PostgreSQL"
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
