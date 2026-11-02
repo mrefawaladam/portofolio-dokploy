@@ -54,21 +54,21 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         key: "courses",
-        label: "Track Kursus",
-        description: "Daftar kurikulum kursus utama",
+        label: "Kurikulum Kursus",
+        description: "Kursus, Bab Modul & Pelajaran",
         icon: BookOpen,
       },
       {
-        key: "modules",
-        label: "Modul Bab",
-        description: "Kelompok bab materi per track",
-        icon: FolderGit2,
-      },
-      {
         key: "lessons",
-        label: "Pelajaran / Lessons",
+        label: "Semua Pelajaran",
         description: "Artikel bacaan & koding Markdown",
         icon: Bookmark,
+      },
+      {
+        key: "modules",
+        label: "Semua Modul Bab",
+        description: "Daftar kelompok bab per track",
+        icon: FolderGit2,
       },
     ],
   },

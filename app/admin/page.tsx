@@ -29,8 +29,13 @@ import {
   FileText,
   Settings2,
   HelpCircle,
-  Copy,
+  ChevronDown,
+  ChevronRight,
+  Eye,
   Check,
+  ListTree,
+  Table as TableIcon,
+  Info,
 } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import AdminSidebar, { TabKey } from "@/components/admin/AdminSidebar";
@@ -79,10 +84,10 @@ interface TabConfig {
 const TABS: TabConfig[] = [
   {
     key: "courses",
-    label: "Tutorial Tracks",
+    label: "Kurikulum Kursus",
     singular: "Track Kursus",
     icon: BookOpen,
-    description: "Kurikulum kursus komprehensif (Coursera-style)",
+    description: "Kurikulum kursus komprehensif (Coursera-style) dengan struktur Bab dan Pelajaran",
     fields: [
       {
         name: "title",
@@ -171,7 +176,7 @@ const TABS: TabConfig[] = [
   },
   {
     key: "modules",
-    label: "Tutorial Modules",
+    label: "Semua Modul Bab",
     singular: "Modul Bab",
     icon: FolderGit2,
     description: "Kelompok bab kurikulum dalam suatu track kursus",
@@ -209,7 +214,7 @@ const TABS: TabConfig[] = [
   },
   {
     key: "lessons",
-    label: "Tutorial Lessons",
+    label: "Semua Pelajaran",
     singular: "Materi Lesson",
     icon: Bookmark,
     description: "Artikel pembelajaran dan tutorial interaktif Markdown",
@@ -875,20 +880,23 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isOpenMobile, setIsOpenMobile] = useState<boolean>(false);
 
-  // Cached relational data for courses and modules dropdowns
+  // Curriculum Hub View Mode: "tree" (hierarkis per bab) vs "table" (tabel)
+  const [curriculumViewMode, setCurriculumViewMode] = useState<"tree" | "table">("tree");
+  const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
+
+  // Cached relational data for courses, modules, and lessons
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [allModules, setAllModules] = useState<any[]>([]);
+  const [allLessons, setAllLessons] = useState<any[]>([]);
   const [entityCounts, setEntityCounts] = useState<Partial<Record<TabKey, number>>>({});
 
   // Modal / Drawer State
+  const [modalEntity, setModalEntity] = useState<TabKey>("courses");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [activeFormTab, setActiveFormTab] = useState<"meta" | "markdown">("meta");
   const [saving, setSaving] = useState<boolean>(false);
-
-  // Quick copy feedback
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("refa_admin_key");
@@ -932,21 +940,35 @@ export default function AdminPage() {
     setIsAuthenticated(false);
   };
 
-  // Fetch relations for Course and Module dropdowns
+  // Fetch relations for Course, Module, and Lesson tree
   const fetchTutorialRelations = async () => {
     if (!adminKey) return;
     try {
-      const [resCourses, resModules] = await Promise.all([
+      const [resCourses, resModules, resLessons] = await Promise.all([
         fetch("/api/admin/courses", { headers: { "x-admin-key": adminKey } }),
         fetch("/api/admin/modules", { headers: { "x-admin-key": adminKey } }),
+        fetch("/api/admin/lessons", { headers: { "x-admin-key": adminKey } }),
       ]);
       if (resCourses.ok) {
         const cData = await resCourses.json();
-        if (Array.isArray(cData)) setAllCourses(cData);
+        if (Array.isArray(cData)) {
+          setAllCourses(cData);
+          setEntityCounts((prev) => ({ ...prev, courses: cData.length }));
+        }
       }
       if (resModules.ok) {
         const mData = await resModules.json();
-        if (Array.isArray(mData)) setAllModules(mData);
+        if (Array.isArray(mData)) {
+          setAllModules(mData);
+          setEntityCounts((prev) => ({ ...prev, modules: mData.length }));
+        }
+      }
+      if (resLessons.ok) {
+        const lData = await resLessons.json();
+        if (Array.isArray(lData)) {
+          setAllLessons(lData);
+          setEntityCounts((prev) => ({ ...prev, lessons: lData.length }));
+        }
       }
     } catch {
       // Ignore background relation load errors
@@ -979,6 +1001,10 @@ export default function AdminPage() {
     return TABS.find((t) => t.key === activeTab) || TABS[0];
   }, [activeTab]);
 
+  const modalEntityConfig = useMemo(() => {
+    return TABS.find((t) => t.key === modalEntity) || currentTabConfig;
+  }, [modalEntity, currentTabConfig]);
+
   // Lookup maps to replace raw UUIDs with friendly readable titles
   const courseMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -992,19 +1018,52 @@ export default function AdminPage() {
     return map;
   }, [allModules]);
 
+  // Compute hierarchical tree for courses -> modules -> lessons
+  const courseTree = useMemo(() => {
+    return allCourses.map((course) => {
+      const courseModules = allModules
+        .filter((m) => m.course_id === course.id)
+        .sort((a, b) => (Number(a.order_index) || 0) - (Number(b.order_index) || 0));
+
+      const modulesWithLessons = courseModules.map((mod) => {
+        const modLessons = allLessons
+          .filter((l) => l.module_id === mod.id || (!l.module_id && l.course_id === course.id))
+          .sort((a, b) => (Number(a.order_index) || 0) - (Number(b.order_index) || 0));
+        return {
+          ...mod,
+          lessons: modLessons,
+        };
+      });
+
+      const totalLessonsCount = modulesWithLessons.reduce(
+        (sum, m) => sum + m.lessons.length,
+        0
+      );
+
+      return {
+        ...course,
+        modules: modulesWithLessons,
+        totalLessons: totalLessonsCount,
+      };
+    });
+  }, [allCourses, allModules, allLessons]);
+
   // Has markdown field?
   const hasMarkdownField = useMemo(() => {
-    return currentTabConfig.fields.some((f) => f.type === "markdown");
-  }, [currentTabConfig]);
+    return modalEntityConfig.fields.some((f) => f.type === "markdown");
+  }, [modalEntityConfig]);
 
-  const openCreateModal = () => {
+  // Generic modal openers that can target any entity
+  const openCreateModalForEntity = (entity: TabKey, defaultValues: Record<string, any> = {}) => {
+    setModalEntity(entity);
     setEditingItem(null);
     setActiveFormTab("meta");
+    const targetConfig = TABS.find((t) => t.key === entity) || currentTabConfig;
     const initial: Record<string, any> = {};
 
-    currentTabConfig.fields.forEach((f) => {
+    targetConfig.fields.forEach((f) => {
       if (f.type === "boolean") initial[f.name] = true;
-      else if (f.type === "number") initial[f.name] = items.length + 1;
+      else if (f.type === "number") initial[f.name] = 1;
       else if (f.type === "tags") initial[f.name] = "";
       else if (f.name === "type" && f.options && Array.isArray(f.options)) {
         const firstOpt = f.options[0];
@@ -1020,27 +1079,20 @@ export default function AdminPage() {
       }
     });
 
-    // Default Course ID for modules and lessons to first available course
-    if (activeTab === "modules" && allCourses.length > 0) {
-      initial["course_id"] = allCourses[0].id;
-    }
-    if (activeTab === "lessons" && allCourses.length > 0) {
-      initial["course_id"] = allCourses[0].id;
-      const filteredMods = allModules.filter((m) => m.course_id === allCourses[0].id);
-      if (filteredMods.length > 0) {
-        initial["module_id"] = filteredMods[0].id;
-      }
-    }
+    // Merge explicitly provided default values (e.g. course_id, module_id)
+    Object.assign(initial, defaultValues);
 
     setFormData(initial);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (item: any) => {
+  const openEditModalForEntity = (entity: TabKey, item: any) => {
+    setModalEntity(entity);
     setEditingItem(item);
     setActiveFormTab("meta");
+    const targetConfig = TABS.find((t) => t.key === entity) || currentTabConfig;
     const formatted: Record<string, any> = { ...item };
-    currentTabConfig.fields.forEach((f) => {
+    targetConfig.fields.forEach((f) => {
       if (f.type === "tags" && Array.isArray(item[f.name])) {
         formatted[f.name] = item[f.name].join(", ");
       }
@@ -1049,13 +1101,28 @@ export default function AdminPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string, title?: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus ${title ? `"${title}"` : "item ini"}?`)) {
+  const openCreateModal = () => {
+    openCreateModalForEntity(activeTab);
+  };
+
+  const openEditModal = (item: any) => {
+    openEditModalForEntity(activeTab, item);
+  };
+
+  const handleDeleteEntity = async (entity: TabKey, id: string, title?: string) => {
+    const config = TABS.find((t) => t.key === entity) || currentTabConfig;
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin menghapus ${config.singular} ${
+          title ? `"${title}"` : "ini"
+        }?`
+      )
+    ) {
       return;
     }
     setError(null);
     try {
-      const res = await fetch(`/api/admin/${activeTab}/${id}`, {
+      const res = await fetch(`/api/admin/${entity}/${id}`, {
         method: "DELETE",
         headers: { "x-admin-key": adminKey },
       });
@@ -1063,7 +1130,7 @@ export default function AdminPage() {
         const data = await res.json();
         throw new Error(data.error || "Gagal menghapus");
       }
-      setSuccessMsg("Berhasil dihapus dari PostgreSQL!");
+      setSuccessMsg(`Berhasil menghapus ${config.singular}!`);
       setTimeout(() => setSuccessMsg(null), 3500);
       fetchItems();
       fetchTutorialRelations();
@@ -1072,13 +1139,17 @@ export default function AdminPage() {
     }
   };
 
+  const handleDelete = (id: string, title?: string) => {
+    handleDeleteEntity(activeTab, id, title);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
 
     const payload: Record<string, any> = {};
-    currentTabConfig.fields.forEach((f) => {
+    modalEntityConfig.fields.forEach((f) => {
       const val = formData[f.name];
       if (f.type === "tags") {
         payload[f.name] =
@@ -1101,8 +1172,8 @@ export default function AdminPage() {
 
     try {
       const url = editingItem
-        ? `/api/admin/${activeTab}/${editingItem.id}`
-        : `/api/admin/${activeTab}`;
+        ? `/api/admin/${modalEntity}/${editingItem.id}`
+        : `/api/admin/${modalEntity}`;
       const method = editingItem ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -1120,7 +1191,9 @@ export default function AdminPage() {
       }
 
       setSuccessMsg(
-        editingItem ? "Berhasil diperbarui di database!" : "Berhasil ditambahkan ke database!"
+        editingItem
+          ? `Berhasil memperbarui ${modalEntityConfig.singular}!`
+          : `Berhasil menambahkan ${modalEntityConfig.singular} baru!`
       );
       setTimeout(() => setSuccessMsg(null), 3500);
       setIsModalOpen(false);
@@ -1131,6 +1204,14 @@ export default function AdminPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Toggle module collapse in tree view
+  const toggleModuleCollapse = (moduleId: string) => {
+    setCollapsedModules((prev) => ({
+      ...prev,
+      [moduleId]: !prev[moduleId],
+    }));
   };
 
   // Client-side quick search filter
@@ -1261,7 +1342,10 @@ export default function AdminPage() {
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={fetchItems}
+              onClick={() => {
+                fetchItems();
+                fetchTutorialRelations();
+              }}
               disabled={loading}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs disabled:opacity-60"
             >
@@ -1280,10 +1364,10 @@ export default function AdminPage() {
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {/* Notifications */}
           {error && (
-            <div className="mb-6 flex items-center justify-between rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm text-rose-700 shadow-xs">
+            <div className="flex items-center justify-between rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm text-rose-700 shadow-xs">
               <div className="flex items-center gap-2.5">
                 <AlertCircle size={18} className="shrink-0 text-rose-600" />
                 <span>{error}</span>
@@ -1298,14 +1382,67 @@ export default function AdminPage() {
           )}
 
           {successMsg && (
-            <div className="mb-6 flex items-center gap-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs sm:text-sm text-emerald-800 shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs sm:text-sm text-emerald-800 shadow-xs animate-in fade-in">
               <CheckCircle size={18} className="shrink-0 text-emerald-600" />
               <span className="font-medium">{successMsg}</span>
             </div>
           )}
 
-          {/* Header Banner & Live Search */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+          {/* EDUCATIONAL BANNER: JELASIN KURSUS, BAB, DAN PELAJARAN */}
+          {(activeTab === "courses" || activeTab === "modules" || activeTab === "lessons") && (
+            <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white p-5 shadow-xs">
+              <div className="flex items-start gap-3">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white font-bold">
+                  <Info size={16} />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Struktur Hierarki Tutorial (Coursera Track Architecture)
+                    </h3>
+                    <span className="rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5">
+                      Panduan Konsep
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div className="rounded-xl border border-blue-100 bg-white/80 p-3 shadow-2xs">
+                      <div className="flex items-center gap-1.5 font-bold text-blue-900 text-xs">
+                        <BookOpen size={14} className="text-blue-600" />
+                        1. Track Kursus
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        <strong>Program / Mata Kuliah Utama.</strong> Menampung judul kurikulum besar, silabus lengkap, tingkat kesulitan, dan badge.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-indigo-100 bg-white/80 p-3 shadow-2xs">
+                      <div className="flex items-center gap-1.5 font-bold text-indigo-900 text-xs">
+                        <FolderGit2 size={14} className="text-indigo-600" />
+                        2. Modul Bab (Chapters)
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        <strong>Bab Pengelompok Materi.</strong> Berfungsi membagi kurikulum kursus ke dalam bab terstruktur (Bab 1: Konsep Dasar, Bab 2: Desain Pola, dst).
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-emerald-100 bg-white/80 p-3 shadow-2xs">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-xs">
+                        <Bookmark size={14} className="text-emerald-600" />
+                        3. Pelajaran / Lessons
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        <strong>Isi Materi Sebenarnya!</strong> Inilah artikel bacaan & latihan koding Markdown yang dibaca pengunjung website di setiap bab, lengkap dengan durasi baca.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Header Banner & Live Search & View Switcher */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
@@ -1318,261 +1455,628 @@ export default function AdminPage() {
               <p className="text-xs text-slate-500 mt-1">{currentTabConfig.description}</p>
             </div>
 
-            {/* Quick Search Bar */}
-            <div className="relative w-full sm:w-72">
-              <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                placeholder={`Cari di ${currentTabConfig.label.toLowerCase()}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Items Table Card */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {loading ? (
-              <div className="p-16 text-center space-y-3">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
-                <p className="text-xs font-semibold text-slate-500">
-                  Memuat data {currentTabConfig.label}...
-                </p>
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="p-16 text-center">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
-                  <currentTabConfig.icon size={22} />
+            <div className="flex items-center gap-3">
+              {/* View Switcher for Courses (Tree vs Table) */}
+              {activeTab === "courses" && (
+                <div className="flex items-center rounded-xl bg-slate-100 p-1 text-xs font-bold border border-slate-200/80">
+                  <button
+                    onClick={() => setCurriculumViewMode("tree")}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                      curriculumViewMode === "tree"
+                        ? "bg-white text-blue-600 shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <ListTree size={14} /> Hierarki (Bab per Kursus)
+                  </button>
+                  <button
+                    onClick={() => setCurriculumViewMode("table")}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                      curriculumViewMode === "table"
+                        ? "bg-white text-blue-600 shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <TableIcon size={14} /> Tabel Kursus
+                  </button>
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">
-                  {searchQuery
-                    ? `Tidak ada hasil untuk "${searchQuery}"`
-                    : `Belum ada ${currentTabConfig.singular}`}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  {searchQuery
-                    ? "Coba gunakan kata kunci pencarian yang lain atau bersihkan kotak pencarian."
-                    : `Klik tombol "Tambah ${currentTabConfig.singular}" di kanan atas untuk membuat rekaman data baru.`}
-                </p>
-                {searchQuery ? (
+              )}
+
+              {/* Quick Search Bar */}
+              <div className="relative w-full sm:w-64">
+                <Search
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder={`Cari di ${currentTabConfig.label.toLowerCase()}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition"
+                />
+                {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
-                    Reset Pencarian
-                  </button>
-                ) : (
-                  <button
-                    onClick={openCreateModal}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
-                  >
-                    <Plus size={14} /> Tambah {currentTabConfig.singular} Pertama
+                    <X size={13} />
                   </button>
                 )}
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-6 py-4">Judul / Entitas Utama</th>
-                      <th className="px-6 py-4">Kategori & Relasi</th>
-                      <th className="px-6 py-4">Tags & Atribut</th>
-                      <th className="px-6 py-4 text-center">Urutan</th>
-                      <th className="px-6 py-4 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredItems.map((item) => {
-                      const primaryTitle =
-                        item.title ||
-                        item.name ||
-                        item.role ||
-                        item.institution ||
-                        item.metric ||
-                        "Tanpa Judul";
-                      const subtitle =
-                        item.tagline ||
-                        item.headline ||
-                        item.description ||
-                        item.company ||
-                        item.degree ||
-                        item.note ||
-                        item.excerpt ||
-                        "";
-                      const tags = item.tags || (item.category ? [item.category] : []);
+            </div>
+          </div>
 
-                      // Friendly relation info
-                      const relatedCourseTitle = item.course_id
-                        ? courseMap.get(item.course_id)
-                        : null;
-                      const relatedModuleTitle = item.module_id
-                        ? moduleMap.get(item.module_id)
-                        : null;
+          {/* 1. KHUSUS TAB COURSES DENGAN TREE VIEW: TAMPILKAN BAB PER KURSUS */}
+          {activeTab === "courses" && curriculumViewMode === "tree" ? (
+            <div className="space-y-6">
+              {loading ? (
+                <div className="p-16 text-center space-y-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+                  <p className="text-xs font-semibold text-slate-500">
+                    Memuat kurikulum lengkap kursus...
+                  </p>
+                </div>
+              ) : courseTree.length === 0 ? (
+                <div className="p-16 text-center rounded-2xl bg-white border border-slate-200 shadow-xs">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
+                    <BookOpen size={24} />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">Belum ada Kursus</h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    Klik tombol &quot;Tambah Track Kursus&quot; untuk membuat silabus kursus baru.
+                  </p>
+                  <button
+                    onClick={() => openCreateModalForEntity("courses")}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
+                  >
+                    <Plus size={14} /> Buat Kursus Pertama
+                  </button>
+                </div>
+              ) : (
+                courseTree.map((course) => (
+                  <div
+                    key={course.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5"
+                  >
+                    {/* Course Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-slate-100">
+                      <div className="flex items-start gap-3.5">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20">
+                          <BookOpen size={24} />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                              {course.title}
+                            </h2>
+                            {course.badge && (
+                              <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                {course.badge}
+                              </span>
+                            )}
+                            {course.level && (
+                              <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                                {course.level}
+                              </span>
+                            )}
+                            {course.published ? (
+                              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                🟢 Live di Web
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                                ⚪ Draft
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                            {course.tagline || course.description}
+                          </p>
+                          <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-400 font-medium">
+                            <span className="flex items-center gap-1 text-slate-600 font-semibold">
+                              <FolderGit2 size={13} className="text-blue-600" />
+                              {course.modules.length} Bab Modul
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 text-slate-600 font-semibold">
+                              <Bookmark size={13} className="text-emerald-600" />
+                              {course.totalLessons} Materi Pelajaran
+                            </span>
+                            <span>•</span>
+                            <span className="font-mono text-slate-400">/tutorials/{course.slug}</span>
+                          </div>
+                        </div>
+                      </div>
 
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50/80 transition group">
-                          {/* Col 1: Primary Title + Image/Slug */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-start gap-3">
-                              {(item.cover_image || item.image_url) && (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img
-                                  src={item.cover_image || item.image_url}
-                                  alt={primaryTitle}
-                                  className="h-11 w-14 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs mt-0.5"
-                                />
-                              )}
-                              <div className="min-w-0">
-                                <div className="font-bold text-slate-900 text-sm leading-snug line-clamp-1">
-                                  {primaryTitle}
+                      {/* Course Action Buttons */}
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                        <Link
+                          href={`/tutorials/${course.slug}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+                        >
+                          <span>Live</span> <ExternalLink size={11} />
+                        </Link>
+                        <button
+                          onClick={() => {
+                            openCreateModalForEntity("modules", {
+                              course_id: course.id,
+                              order_index: course.modules.length + 1,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 rounded-xl bg-blue-50 border border-blue-200/80 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition shadow-2xs"
+                        >
+                          <Plus size={13} /> Tambah Bab
+                        </button>
+                        <button
+                          onClick={() => openEditModalForEntity("courses", course)}
+                          className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 transition"
+                          title="Edit Kursus"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEntity("courses", course.id, course.title)}
+                          className="rounded-xl border border-slate-200 p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                          title="Hapus Kursus"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* DAFTAR BAB MODUL (BAB DITAMPILKAN DI TIAP KURSUS) */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span>Daftar Bab & Materi Pelajaran</span>
+                        <span>{course.modules.length} Bab Terdaftar</span>
+                      </div>
+
+                      {course.modules.length === 0 ? (
+                        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+                          <p className="text-xs text-slate-600 font-medium">
+                            Belum ada Bab Modul di kursus ini.
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Setiap kursus membutuhkan bab untuk mengelompokkan materi pelajaran.
+                          </p>
+                          <button
+                            onClick={() => {
+                              openCreateModalForEntity("modules", {
+                                course_id: course.id,
+                                order_index: 1,
+                              });
+                            }}
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-xs"
+                          >
+                            <Plus size={13} /> Tambah Bab Pertama ke Kursus Ini
+                          </button>
+                        </div>
+                      ) : (
+                        course.modules.map((mod: any, modIdx: number) => {
+                          const isCollapsed = Boolean(collapsedModules[mod.id]);
+
+                          return (
+                            <div
+                              key={mod.id}
+                              className="rounded-2xl border border-slate-200/90 bg-slate-50/60 overflow-hidden transition"
+                            >
+                              {/* Bab Header */}
+                              <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-100/70 border-b border-slate-200/80">
+                                <div
+                                  onClick={() => toggleModuleCollapse(mod.id)}
+                                  className="flex items-center gap-2.5 cursor-pointer select-none min-w-0"
+                                >
+                                  <button
+                                    type="button"
+                                    className="text-slate-400 hover:text-slate-700"
+                                  >
+                                    {isCollapsed ? (
+                                      <ChevronRight size={15} />
+                                    ) : (
+                                      <ChevronDown size={15} />
+                                    )}
+                                  </button>
+                                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-blue-600 text-white font-mono text-[10px] font-bold shrink-0">
+                                    {mod.order_index || modIdx + 1}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                      Bab {mod.order_index || modIdx + 1}: {mod.title}
+                                    </span>
+                                    <span className="ml-2 font-mono text-[10px] text-slate-400 hidden sm:inline">
+                                      /{mod.slug}
+                                    </span>
+                                  </div>
+                                  <span className="rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shrink-0">
+                                    {mod.lessons.length} Pelajaran
+                                  </span>
                                 </div>
-                                {subtitle && (
-                                  <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-md">
-                                    {subtitle}
+
+                                {/* Bab Action Buttons */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      openCreateModalForEntity("lessons", {
+                                        course_id: course.id,
+                                        module_id: mod.id,
+                                        order_index: mod.lessons.length + 1,
+                                      });
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-indigo-700 transition"
+                                  >
+                                    <Plus size={11} /> Tambah Pelajaran
+                                  </button>
+                                  <button
+                                    onClick={() => openEditModalForEntity("modules", mod)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+                                    title="Edit Bab"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteEntity("modules", mod.id, mod.title)
+                                    }
+                                    className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-100 hover:text-rose-600 transition"
+                                    title="Hapus Bab"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Lessons list in this Bab */}
+                              {!isCollapsed && (
+                                <div className="p-3 sm:p-4 space-y-2">
+                                  {mod.lessons.length === 0 ? (
+                                    <div className="py-4 text-center text-xs text-slate-400 italic bg-white/70 rounded-xl border border-dashed border-slate-200">
+                                      Belum ada materi pelajaran di bab ini. Klik tombol{" "}
+                                      <span className="font-semibold text-indigo-600">
+                                        &quot;+ Tambah Pelajaran&quot;
+                                      </span>{" "}
+                                      di atas untuk menulis materi Markdown.
+                                    </div>
+                                  ) : (
+                                    mod.lessons.map((lesson: any) => (
+                                      <div
+                                        key={lesson.id}
+                                        className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-200/70 shadow-2xs hover:border-blue-300 hover:shadow-xs transition"
+                                      >
+                                        <div className="flex items-start gap-3 min-w-0">
+                                          <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-50 border border-slate-200/80 text-sm shrink-0 mt-0.5">
+                                            {lesson.type === "code"
+                                              ? "💻"
+                                              : lesson.type === "architecture"
+                                              ? "🏗️"
+                                              : "📖"}
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                                {lesson.title}
+                                              </span>
+                                              <span
+                                                className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
+                                                  lesson.published
+                                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                                }`}
+                                              >
+                                                {lesson.published ? "Live" : "Draft"}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                              <span className="font-medium text-slate-500">
+                                                {lesson.duration || "10 min read"}
+                                              </span>
+                                              <span>•</span>
+                                              <span className="capitalize font-medium text-slate-500">
+                                                Tipe: {lesson.type || "reading"}
+                                              </span>
+                                              <span>•</span>
+                                              <span className="font-mono text-slate-400">
+                                                /{lesson.slug}
+                                              </span>
+                                            </div>
+                                            {lesson.excerpt && (
+                                              <p className="text-[11px] text-slate-500 line-clamp-1 mt-1 max-w-xl">
+                                                {lesson.excerpt}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Lesson Action Buttons */}
+                                        <div className="flex items-center gap-1 shrink-0 ml-3">
+                                          <Link
+                                            href={`/tutorials/${course.slug}/${lesson.slug}`}
+                                            target="_blank"
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                                            title="Lihat di Web Live"
+                                          >
+                                            <ExternalLink size={13} />
+                                          </Link>
+                                          <button
+                                            onClick={() =>
+                                              openEditModalForEntity("lessons", lesson)
+                                            }
+                                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition"
+                                            title="Edit Materi & Markdown"
+                                          >
+                                            <Edit2 size={12} />
+                                            <span className="hidden sm:inline">Edit Markdown</span>
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteEntity(
+                                                "lessons",
+                                                lesson.id,
+                                                lesson.title
+                                              )
+                                            }
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                            title="Hapus Pelajaran"
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            /* 2. STANDARD TABLE VIEW (UNTUK SEMUA ENTITAS LAIN ATAU VIEW MODE TABLE) */
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {loading ? (
+                <div className="p-16 text-center space-y-3">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+                  <p className="text-xs font-semibold text-slate-500">
+                    Memuat data {currentTabConfig.label}...
+                  </p>
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="p-16 text-center">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
+                    <currentTabConfig.icon size={22} />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">
+                    {searchQuery
+                      ? `Tidak ada hasil untuk "${searchQuery}"`
+                      : `Belum ada ${currentTabConfig.singular}`}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    {searchQuery
+                      ? "Coba gunakan kata kunci pencarian yang lain atau bersihkan kotak pencarian."
+                      : `Klik tombol "Tambah ${currentTabConfig.singular}" di kanan atas untuk membuat rekaman data baru.`}
+                  </p>
+                  {searchQuery ? (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                    >
+                      Reset Pencarian
+                    </button>
+                  ) : (
+                    <button
+                      onClick={openCreateModal}
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition"
+                    >
+                      <Plus size={14} /> Tambah {currentTabConfig.singular} Pertama
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <tr>
+                        <th className="px-6 py-4">Judul / Entitas Utama</th>
+                        <th className="px-6 py-4">Kategori & Relasi</th>
+                        <th className="px-6 py-4">Tags & Atribut</th>
+                        <th className="px-6 py-4 text-center">Urutan</th>
+                        <th className="px-6 py-4 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredItems.map((item) => {
+                        const primaryTitle =
+                          item.title ||
+                          item.name ||
+                          item.role ||
+                          item.institution ||
+                          item.metric ||
+                          "Tanpa Judul";
+                        const subtitle =
+                          item.tagline ||
+                          item.headline ||
+                          item.description ||
+                          item.company ||
+                          item.degree ||
+                          item.note ||
+                          item.excerpt ||
+                          "";
+                        const tags = item.tags || (item.category ? [item.category] : []);
+
+                        // Friendly relation info
+                        const relatedCourseTitle = item.course_id
+                          ? courseMap.get(item.course_id)
+                          : null;
+                        const relatedModuleTitle = item.module_id
+                          ? moduleMap.get(item.module_id)
+                          : null;
+
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50/80 transition group">
+                            {/* Col 1: Primary Title + Image/Slug */}
+                            <td className="px-6 py-4">
+                              <div className="flex items-start gap-3">
+                                {(item.cover_image || item.image_url) && (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={item.cover_image || item.image_url}
+                                    alt={primaryTitle}
+                                    className="h-11 w-14 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs mt-0.5"
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 text-sm leading-snug line-clamp-1">
+                                    {primaryTitle}
+                                  </div>
+                                  {subtitle && (
+                                    <div className="text-slate-500 text-xs mt-0.5 line-clamp-1 max-w-md">
+                                      {subtitle}
+                                    </div>
+                                  )}
+                                  {item.slug && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                                        /{item.slug}
+                                      </span>
+                                      {activeTab === "courses" && (
+                                        <Link
+                                          href={`/tutorials/${item.slug}`}
+                                          target="_blank"
+                                          className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                                        >
+                                          Live <ExternalLink size={9} />
+                                        </Link>
+                                      )}
+                                      {activeTab === "lessons" && item.course_id && (
+                                        <Link
+                                          href={`/tutorials/${courseMap.get(item.course_id) || item.course_id}/${item.slug}`}
+                                          target="_blank"
+                                          className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                                        >
+                                          Live <ExternalLink size={9} />
+                                        </Link>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Col 2: Relasi & Kategori */}
+                            <td className="px-6 py-4">
+                              <div className="space-y-1 max-w-xs">
+                                {relatedCourseTitle && (
+                                  <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-lg">
+                                    <BookOpen size={10} className="shrink-0 text-blue-600" />
+                                    <span className="truncate">{relatedCourseTitle}</span>
                                   </div>
                                 )}
-                                {item.slug && (
-                                  <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                                      /{item.slug}
-                                    </span>
-                                    {activeTab === "courses" && (
-                                      <Link
-                                        href={`/tutorials/${item.slug}`}
-                                        target="_blank"
-                                        className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
-                                      >
-                                        Live <ExternalLink size={9} />
-                                      </Link>
-                                    )}
+                                {relatedModuleTitle && (
+                                  <div className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg ml-0.5">
+                                    <FolderGit2 size={10} className="shrink-0 text-slate-500" />
+                                    <span className="truncate">{relatedModuleTitle}</span>
                                   </div>
+                                )}
+
+                                {!relatedCourseTitle && !relatedModuleTitle && (
+                                  <div className="text-xs text-slate-600 font-medium">
+                                    {item.type ||
+                                      item.brand ||
+                                      item.period ||
+                                      item.pricing_type ||
+                                      item.read_time ||
+                                      item.category ||
+                                      "-"}
+                                  </div>
+                                )}
+
+                                {item.level && (
+                                  <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[10px] border border-indigo-100">
+                                    {item.level}
+                                  </span>
+                                )}
+                                {item.status && (
+                                  <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[10px] border border-emerald-100">
+                                    ● {item.status}
+                                  </span>
                                 )}
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Col 2: Relasi & Kategori */}
-                          <td className="px-6 py-4">
-                            <div className="space-y-1 max-w-xs">
-                              {/* Display friendly Course & Module badges instead of raw UUIDs */}
-                              {relatedCourseTitle && (
-                                <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-lg">
-                                  <BookOpen size={10} className="shrink-0 text-blue-600" />
-                                  <span className="truncate">{relatedCourseTitle}</span>
-                                </div>
-                              )}
-                              {relatedModuleTitle && (
-                                <div className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg ml-0.5">
-                                  <FolderGit2 size={10} className="shrink-0 text-slate-500" />
-                                  <span className="truncate">{relatedModuleTitle}</span>
-                                </div>
-                              )}
-
-                              {!relatedCourseTitle && !relatedModuleTitle && (
-                                <div className="text-xs text-slate-600 font-medium">
-                                  {item.type ||
-                                    item.brand ||
-                                    item.period ||
-                                    item.pricing_type ||
-                                    item.read_time ||
-                                    item.category ||
-                                    "-"}
-                                </div>
-                              )}
-
-                              {item.level && (
-                                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[10px] border border-indigo-100">
-                                  {item.level}
-                                </span>
-                              )}
-                              {item.status && (
-                                <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[10px] border border-emerald-100">
-                                  ● {item.status}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Col 3: Tags & Atribut */}
-                          <td className="px-6 py-4">
-                            <div className="flex flex-wrap gap-1 max-w-xs">
-                              {Array.isArray(tags) &&
-                                tags.slice(0, 3).map((tg: string) => (
-                                  <span
-                                    key={tg}
-                                    className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-semibold border border-slate-200/50"
-                                  >
-                                    {tg}
+                            {/* Col 3: Tags & Atribut */}
+                            <td className="px-6 py-4">
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {Array.isArray(tags) &&
+                                  tags.slice(0, 3).map((tg: string) => (
+                                    <span
+                                      key={tg}
+                                      className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-semibold border border-slate-200/50"
+                                    >
+                                      {tg}
+                                    </span>
+                                  ))}
+                                {Array.isArray(tags) && tags.length > 3 && (
+                                  <span className="text-[10px] text-slate-400 self-center">
+                                    +{tags.length - 3}
                                   </span>
-                                ))}
-                              {Array.isArray(tags) && tags.length > 3 && (
-                                <span className="text-[10px] text-slate-400 self-center">
-                                  +{tags.length - 3}
-                                </span>
-                              )}
-                              {item.published === false && (
-                                <span className="rounded-md bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
-                                  Draft
-                                </span>
-                              )}
-                              {item.featured && (
-                                <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
-                                  ★ Featured
-                                </span>
-                              )}
-                              {item.metrics && (
-                                <span className="rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-bold">
-                                  {item.metrics}
-                                </span>
-                              )}
-                            </div>
-                          </td>
+                                )}
+                                {item.published === false && (
+                                  <span className="rounded-md bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
+                                    Draft
+                                  </span>
+                                )}
+                                {item.featured && (
+                                  <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                                    ★ Featured
+                                  </span>
+                                )}
+                                {item.metrics && (
+                                  <span className="rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-bold">
+                                    {item.metrics}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
 
-                          {/* Col 4: Order Index */}
-                          <td className="px-6 py-4 text-center font-mono text-xs text-slate-500 font-bold">
-                            #{item.order_index ?? "-"}
-                          </td>
+                            {/* Col 4: Order Index */}
+                            <td className="px-6 py-4 text-center font-mono text-xs text-slate-500 font-bold">
+                              #{item.order_index ?? "-"}
+                            </td>
 
-                          {/* Col 5: Actions */}
-                          <td className="px-6 py-4 text-right">
-                            <div className="inline-flex items-center gap-1">
-                              <button
-                                onClick={() => openEditModal(item)}
-                                className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition"
-                                title="Edit data"
-                              >
-                                <Edit2 size={15} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(item.id, primaryTitle)}
-                                className="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
-                                title="Hapus data"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                            {/* Col 5: Actions */}
+                            <td className="px-6 py-4 text-right">
+                              <div className="inline-flex items-center gap-1">
+                                <button
+                                  onClick={() => openEditModal(item)}
+                                  className="rounded-xl p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition"
+                                  title="Edit data"
+                                >
+                                  <Edit2 size={15} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(item.id, primaryTitle)}
+                                  className="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                                  title="Hapus data"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 
@@ -1584,13 +2088,13 @@ export default function AdminPage() {
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/80">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm">
-                  <currentTabConfig.icon size={20} />
+                  <modalEntityConfig.icon size={20} />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900 leading-snug">
                     {editingItem
-                      ? `Edit ${currentTabConfig.singular}`
-                      : `Tambah ${currentTabConfig.singular} Baru`}
+                      ? `Edit ${modalEntityConfig.singular}`
+                      : `Tambah ${modalEntityConfig.singular} Baru`}
                   </h3>
                   <p className="text-xs text-slate-500">
                     Perubahan akan disimpan langsung ke database PostgreSQL Dokploy.
@@ -1641,7 +2145,7 @@ export default function AdminPage() {
             <form onSubmit={handleSave} className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
                 {/* RENDER FIELDS */}
-                {currentTabConfig.fields.map((field) => {
+                {modalEntityConfig.fields.map((field) => {
                   // If hasMarkdown and we are in meta tab, hide markdown field
                   if (field.type === "markdown" && activeFormTab === "meta") {
                     return null;
@@ -1672,7 +2176,8 @@ export default function AdminPage() {
                           minHeight="min-h-[420px]"
                           currentCoverUrl={formData["cover_image"] || formData["image_url"]}
                           onSetCover={(url) => {
-                            const coverKey = activeTab === "news" ? "cover_image" : "image_url";
+                            const coverKey =
+                              modalEntity === "news" ? "cover_image" : "image_url";
                             setFormData((prev) => ({ ...prev, [coverKey]: url }));
                           }}
                         />
@@ -1692,9 +2197,12 @@ export default function AdminPage() {
                           onChange={(e) => {
                             const newCourseId = e.target.value;
                             setFormData((prev) => {
-                              const updated: Record<string, any> = { ...prev, course_id: newCourseId };
-                              // If on lessons tab, automatically reset or select the first module of the chosen course
-                              if (activeTab === "lessons") {
+                              const updated: Record<string, any> = {
+                                ...prev,
+                                course_id: newCourseId,
+                              };
+                              // If on lessons entity, automatically reset or select the first module of the chosen course
+                              if (modalEntity === "lessons") {
                                 const matchingMods = allModules.filter(
                                   (m) => m.course_id === newCourseId
                                 );
@@ -2032,9 +2540,9 @@ export default function AdminPage() {
                         <RefreshCw size={13} className="animate-spin" /> Menyimpan...
                       </>
                     ) : editingItem ? (
-                      "Perbarui Data"
+                      `Perbarui ${modalEntityConfig.singular}`
                     ) : (
-                      "Simpan ke PostgreSQL"
+                      `Simpan ${modalEntityConfig.singular}`
                     )}
                   </button>
                 </div>

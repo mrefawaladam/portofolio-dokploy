@@ -139,6 +139,66 @@ export async function GET(
     const res = await pool.query(
       `SELECT * FROM ${entityConfig.table} ORDER BY order_index ASC, created_at DESC`
     );
+
+    // Auto-seed default lessons from Markdown content if DB has 0 lessons
+    if (params.entity === "lessons" && res.rows.length === 0) {
+      try {
+        const courseCheck = await pool.query(
+          "SELECT id FROM public.tutorial_courses WHERE slug = 'event-driven-rabbitmq' LIMIT 1"
+        );
+        if (courseCheck.rows.length > 0) {
+          const courseId = courseCheck.rows[0].id;
+          const modsRes = await pool.query(
+            "SELECT id, slug FROM public.tutorial_modules WHERE course_id = $1 ORDER BY order_index ASC",
+            [courseId]
+          );
+          if (modsRes.rows.length > 0) {
+            const fs = await import("fs");
+            const path = await import("path");
+            const matter = (await import("gray-matter")).default;
+            const baseDir = path.join(process.cwd(), "content", "tutorials", "event-driven-rabbitmq");
+            if (fs.existsSync(baseDir)) {
+              for (const mod of modsRes.rows) {
+                const modDir = path.join(baseDir, mod.slug);
+                if (fs.existsSync(modDir)) {
+                  const files = fs.readdirSync(modDir).filter((f) => f.endsWith(".md")).sort();
+                  for (let fIdx = 0; fIdx < files.length; fIdx++) {
+                    const f = files[fIdx];
+                    const contentRaw = fs.readFileSync(path.join(modDir, f), "utf-8");
+                    const parsed = matter(contentRaw);
+                    const slug = f.replace(/^\d+[-_]/, "").replace(/\.md$/, "");
+                    await pool.query(
+                      `INSERT INTO public.tutorial_lessons (course_id, module_id, slug, title, order_index, duration, type, excerpt, tags, content, published)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+                       ON CONFLICT (course_id, slug) DO NOTHING`,
+                      [
+                        courseId,
+                        mod.id,
+                        slug,
+                        parsed.data.title || slug,
+                        fIdx + 1,
+                        parsed.data.duration || "10 min read",
+                        parsed.data.type || "reading",
+                        parsed.data.excerpt || "",
+                        parsed.data.tags || [],
+                        parsed.content.trim(),
+                      ]
+                    );
+                  }
+                }
+              }
+              const reloaded = await pool.query(
+                `SELECT * FROM public.tutorial_lessons ORDER BY order_index ASC, created_at DESC`
+              );
+              return NextResponse.json(reloaded.rows);
+            }
+          }
+        }
+      } catch (seedErr) {
+        console.error("Auto-seed error for lessons:", seedErr);
+      }
+    }
+
     return NextResponse.json(res.rows);
   } catch (err: any) {
     // If order_index or created_at doesn't exist on this table, fallback to simple select
