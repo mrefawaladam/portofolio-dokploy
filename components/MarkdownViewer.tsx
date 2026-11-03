@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy } from "lucide-react";
 import { cleanChatGptMarkdown } from "@/lib/chatgpt-formatter";
+import { BentoGallery, PillBadges, GalleryImage } from "./BentoGallery";
 
 interface MarkdownViewerProps {
   content: string;
@@ -15,8 +16,37 @@ function CodeBlock({ children, className }: { children: any; className?: string 
   const [copied, setCopied] = useState(false);
   const codeString = String(children).replace(/\n$/, "");
   const match = /language-(\w+)/.exec(className || "");
-  const language = match ? match[1] : "";
+  const language = match ? match[1].toLowerCase() : "";
 
+  // 1. Custom Renderer for Bento Image Gallery (```gallery)
+  if (language === "gallery") {
+    const imgMatches = [
+      ...codeString.matchAll(/!\[(.*?)\]\((https?:\/\/[^\)]+)\)/g),
+    ];
+
+    const images: GalleryImage[] = imgMatches.map((m) => ({
+      alt: m[1] || "",
+      src: m[2],
+    }));
+
+    if (images.length > 0) {
+      return <BentoGallery images={images} />;
+    }
+  }
+
+  // 2. Custom Renderer for Pill Badges (```badges)
+  if (language === "badges") {
+    const badges = codeString
+      .split(/\||\n/)
+      .map((b) => b.trim())
+      .filter(Boolean);
+
+    if (badges.length > 0) {
+      return <PillBadges badges={badges} />;
+    }
+  }
+
+  // 3. Standard Code Block with Copy
   const handleCopy = () => {
     navigator.clipboard.writeText(codeString);
     setCopied(true);
@@ -65,17 +95,17 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
   const processedContent = cleanChatGptMarkdown(content);
 
   return (
-    <div className={`prose-container text-slate-700 leading-relaxed ${className}`}>
+    <div className={`prose-container text-slate-800 leading-relaxed ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mt-7 mb-3">
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mt-6 mb-2">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 mt-6 mb-2 pb-1.5 border-b border-slate-200/70">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 mt-7 mb-2.5">
               {children}
             </h2>
           ),
@@ -90,17 +120,17 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
             </h4>
           ),
           p: ({ children }) => (
-            <p className="my-3 text-sm md:text-[15px] leading-7 text-slate-600">
+            <p className="my-3 text-sm md:text-[15px] leading-7 text-slate-700">
               {children}
             </p>
           ),
           ul: ({ children }) => (
-            <ul className="list-disc list-outside pl-5 my-3 space-y-1 text-sm md:text-[15px] text-slate-600">
+            <ul className="list-disc list-outside pl-5 my-3 space-y-1.5 text-sm md:text-[15px] text-slate-700">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-outside pl-5 my-3 space-y-1 text-sm md:text-[15px] text-slate-600">
+            <ol className="list-decimal list-outside pl-5 my-3 space-y-1.5 text-sm md:text-[15px] text-slate-700">
               {children}
             </ol>
           ),
@@ -110,7 +140,7 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
               <li
                 className={`leading-relaxed ${
                   isTaskList
-                    ? "list-none -ml-4 flex items-center gap-2.5 py-1 text-slate-700"
+                    ? "list-none -ml-4 flex items-center gap-2.5 py-1 text-slate-800 font-medium"
                     : ""
                 }`}
               >
@@ -137,7 +167,7 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
               {children}
             </blockquote>
           ),
-          hr: () => <hr className="my-6 border-slate-200" />,
+          hr: () => <hr className="my-6 border-slate-200/80" />,
           a: ({ href, children }) => {
             // Check if href is an image URL (e.g. from OpenAI/ChatGPT search or ends with image extensions)
             const isImageLink =
@@ -184,22 +214,12 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
               </a>
             );
           },
-          img: ({ src, alt }) => (
-            <span className="block my-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt={alt || "Gambar Ilustrasi"}
-                className="max-h-[420px] w-auto max-w-full rounded-2xl object-contain border border-slate-200 bg-slate-50 shadow-xs transition hover:shadow-md"
-                loading="lazy"
-              />
-              {alt && (
-                <span className="block text-center text-xs text-slate-400 mt-1.5 italic">
-                  {alt}
-                </span>
-              )}
-            </span>
-          ),
+          img: ({ src, alt }) => {
+            if (!src) return null;
+            return (
+              <BentoGallery images={[{ src, alt: alt || "Visual Showcase" }]} />
+            );
+          },
           table: ({ children }) => (
             <div className="my-5 overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left text-xs md:text-sm border-collapse">
@@ -228,7 +248,11 @@ export default function MarkdownViewer({ content, className = "" }: MarkdownView
           ),
           code: ({ node, className, children, ...props }: any) => {
             const isMultiline = String(children).includes("\n");
-            if (isMultiline) {
+            const match = /language-(\w+)/.exec(className || "");
+            const isSpecialLang =
+              match && (match[1] === "gallery" || match[1] === "badges");
+
+            if (isMultiline || isSpecialLang) {
               return <CodeBlock className={className}>{children}</CodeBlock>;
             }
             return (
