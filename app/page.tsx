@@ -138,11 +138,11 @@ export default function Home() {
   };
 
   return (
-    <main className="overflow-hidden bg-[#f4f7fb] text-[#10172a]">
+    <main className="overflow-hidden bg-paper text-ink">
       {/* HERO SECTION */}
-      <section id="top" className="relative isolate overflow-hidden bg-[#f4f7fb]">
+      <section id="top" className="relative isolate overflow-hidden bg-paper">
         <div className="hero-blue-gradient absolute inset-y-0 left-0 w-full md:w-[56%]" />
-        <div className="absolute inset-y-0 right-0 hidden w-[51%] rounded-l-[36px] bg-[#fbfdff] md:block" />
+        <div className="absolute inset-y-0 right-0 hidden w-[51%] rounded-l-[36px] bg-cream md:block" />
         <div className="pointer-events-none absolute left-[18%] top-[10%] hidden h-72 w-72 rounded-full bg-cyan-200/20 blur-3xl md:block" />
         <div className="pointer-events-none absolute right-[3%] top-[19%] hidden h-[390px] w-[390px] rounded-full border border-blue-200/80 md:block" />
         <div className="pointer-events-none absolute right-[2%] top-[17%] hidden h-[410px] w-[410px] rounded-full bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-50 md:block" />
@@ -158,7 +158,7 @@ export default function Home() {
               className="h-8 md:h-9 w-auto object-contain"
             />
           </a>
-          <nav className="hidden items-center gap-5 rounded-full bg-white/90 px-6 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm md:flex">
+          <nav className="hidden items-center gap-5 rounded-full bg-white/90 px-6 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-800 shadow-sm lg:flex">
             {navItems.map(([label, href]) => (
               <Link key={label} href={href} className="transition hover:text-blue-600">
                 {label}
@@ -168,18 +168,18 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Link
               href="/admin"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur transition hover:bg-white/20"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur transition hover:bg-white/20 md:border-slate-200 md:bg-white/90 md:text-slate-800 md:hover:bg-slate-100 md:hover:text-blue-600"
             >
               <Shield size={12} /> Admin
             </Link>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/90 text-slate-900 shadow-sm md:hidden" aria-label="Toggle navigation" aria-expanded={menuOpen}>
+            <button onClick={() => setMenuOpen(!menuOpen)} className="grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/90 text-slate-900 shadow-sm lg:hidden" aria-label="Toggle navigation" aria-expanded={menuOpen}>
               {menuOpen ? <X size={17} /> : <Menu size={17} />}
             </button>
           </div>
         </header>
 
         {menuOpen && (
-          <nav className="absolute right-4 top-[66px] z-50 flex min-w-44 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-xs shadow-xl md:hidden">
+          <nav className="absolute right-4 top-[66px] z-50 flex min-w-44 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-xs shadow-xl lg:hidden">
             {navItems.map(([label, href]) => (
               <Link key={label} href={href} onClick={() => setMenuOpen(false)} className="py-1">
                 {label}
@@ -232,7 +232,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative min-h-[420px] overflow-hidden bg-[#fbfdff] md:min-h-0 md:bg-transparent">
+          <div className="relative min-h-[420px] overflow-hidden bg-cream md:min-h-0 md:bg-transparent">
             <div className="absolute right-[-18%] top-[9%] h-[290px] w-[290px] rounded-full bg-gradient-to-br from-blue-100 via-sky-100 to-cyan-50 md:hidden" />
             <div className="absolute right-[-9%] top-[12%] h-[320px] w-[320px] rounded-full border border-blue-200 md:hidden" />
             <div className="absolute right-6 top-8 z-30 max-w-[210px] text-right sm:right-8 md:right-10 md:top-[18%] lg:right-12">
@@ -274,7 +274,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 bg-[#fbfdff] px-6 py-4 text-[9px] uppercase tracking-[.16em] text-slate-500 md:hidden">
+        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 bg-cream px-6 py-4 text-[9px] uppercase tracking-[.16em] text-slate-500 md:hidden">
           <span>Ponorogo, Jawa Timur, ID</span><span>Backend · Architecture · Product</span>
         </div>
       </section>
